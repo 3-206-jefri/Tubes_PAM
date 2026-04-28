@@ -27,8 +27,8 @@ Hardware yang nyaman: RAM minimal 8 GB (16 GB lebih lega), free space ±10 GB.
 ## 2. Clone Repository
 
 ```bash
-git clone https://github.com/<USERNAME>/Pryk-PAM.git
-cd Pryk-PAM
+git clone https://github.com/<USERNAME>/Pryk-PAM](https://github.com/informatika-itera/Proyek-Pengembangan-Aplikasi-Mobile.git
+cd Proyek-Pengembangan-Aplikasi-Mobile
 ```
 
 Buat branch project kelompok sesuai aturan di [GIT_WORKFLOW.md](./GIT_WORKFLOW.md):
