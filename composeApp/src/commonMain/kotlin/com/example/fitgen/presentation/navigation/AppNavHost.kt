@@ -3,8 +3,10 @@ package com.example.fitgen.presentation.navigation
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.outlined.FitnessCenter
 import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -24,6 +26,7 @@ import com.example.fitgen.presentation.screens.addnote.AddNoteScreen
 import com.example.fitgen.presentation.screens.ai.AIAssistantScreen
 import com.example.fitgen.presentation.screens.detail.NoteDetailScreen
 import com.example.fitgen.presentation.screens.home.HomeScreen
+import com.example.fitgen.presentation.screens.profile.ProfileScreen
 import com.example.fitgen.presentation.screens.workout.AddWorkoutScreen
 import com.example.fitgen.presentation.screens.workout.WorkoutListScreen
 
@@ -38,7 +41,9 @@ fun AppNavHost(
 
     // BottomNav hanya tampil di top-level screens
     val showBottomBar = currentDestination?.let {
-        it.hasRoute(Route.Home::class) || it.hasRoute(Route.WorkoutList::class)
+        it.hasRoute(Route.Home::class) || 
+        it.hasRoute(Route.WorkoutList::class) ||
+        it.hasRoute(Route.Profile::class)
     } ?: false
 
     Scaffold(
@@ -68,6 +73,18 @@ fun AppNavHost(
                             )
                         },
                         label = { Text("Latihan") }
+                    )
+                    NavigationBarItem(
+                        selected = currentDestination?.hasRoute(Route.Profile::class) == true,
+                        onClick = { navigationActions.navigateToProfile() },
+                        icon = {
+                            Icon(
+                                if (currentDestination?.hasRoute(Route.Profile::class) == true)
+                                    Icons.Filled.Person else Icons.Outlined.Person,
+                                contentDescription = "Profil"
+                            )
+                        },
+                        label = { Text("Profil") }
                     )
                 }
             }
@@ -163,6 +180,10 @@ private fun createNavigationActions(navController: NavHostController): Navigatio
 
         override fun navigateToAddWorkout() {
             navController.navigate(Route.AddWorkout)
+        }
+
+        override fun navigateToProfile() {
+            navController.navigate(Route.Profile)
         }
 
         override fun navigateBack() {

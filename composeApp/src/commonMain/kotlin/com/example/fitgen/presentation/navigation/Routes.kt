@@ -25,6 +25,10 @@ sealed interface Route {
 
     @Serializable
     data object AddWorkout : Route
+
+    // ── Sprint 3: Profile route ──
+    @Serializable
+    data object Profile : Route
 }
 
 interface NavigationActions {
@@ -34,5 +38,6 @@ interface NavigationActions {
     fun navigateToAIAssistant(noteId: Long? = null, initialText: String? = null)
     fun navigateToWorkoutList()
     fun navigateToAddWorkout()
+    fun navigateToProfile()
     fun navigateBack()
 }
