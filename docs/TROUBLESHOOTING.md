@@ -77,7 +77,7 @@ Database version mismatch
 ```kotlin
 // Di DatabaseDriverFactory
 val driver = AndroidSqliteDriver(
-    schema = NoteDatabase.Schema,
+    schema = FitGenDatabase.Schema,
     context = context,
     name = "fitgen.db",
     callback = object : AndroidSqliteDriver.Callback(NoteDatabase.Schema) {

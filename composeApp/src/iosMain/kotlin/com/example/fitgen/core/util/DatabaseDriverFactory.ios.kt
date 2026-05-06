@@ -2,7 +2,7 @@ package com.example.fitgen.core.util
 
 import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.native.NativeSqliteDriver
-import com.example.fitgen.data.local.NoteDatabase
+import com.example.fitgen.data.local.FitGenDatabase
 
 /**
  * iOS implementation of DatabaseDriverFactory
@@ -13,7 +13,7 @@ import com.example.fitgen.data.local.NoteDatabase
 actual class DatabaseDriverFactory {
     actual fun createDriver(): SqlDriver {
         return NativeSqliteDriver(
-            schema = NoteDatabase.Schema,
+            schema = FitGenDatabase.Schema,
             name = "fitgen.db"
         )
     }
