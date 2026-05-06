@@ -8,20 +8,21 @@ import com.example.fitgen.data.local.datastore.UserPreferences
 import com.example.fitgen.data.local.datastore.create
 import com.example.fitgen.data.remote.api.GeminiService
 import com.example.fitgen.data.repository.AIRepositoryImpl
-// Sprint 2: import com.example.fitgen.data.repository.WorkoutRepositoryImpl
+import com.example.fitgen.data.repository.WorkoutRepositoryImpl
 // Sprint 2: import com.example.fitgen.data.repository.MealRepositoryImpl
 // Sprint 2: import com.example.fitgen.data.repository.GpsRepositoryImpl
 // Sprint 3: import com.example.fitgen.data.repository.BodyMetricRepositoryImpl
 import com.example.fitgen.domain.repository.AIRepository
-// Sprint 2: import com.example.fitgen.domain.repository.WorkoutRepository
+import com.example.fitgen.domain.repository.WorkoutRepository
 // Sprint 2: import com.example.fitgen.domain.repository.MealRepository
 // Sprint 2: import com.example.fitgen.domain.repository.GpsRepository
 // Sprint 3: import com.example.fitgen.domain.repository.BodyMetricRepository
-// Sprint 2: import com.example.fitgen.domain.usecase.workout.*
+import com.example.fitgen.domain.usecase.GetAllWorkoutsUseCase
+import com.example.fitgen.domain.usecase.LogWorkoutUseCase
 // Sprint 2: import com.example.fitgen.domain.usecase.meal.*
 // Sprint 2: import com.example.fitgen.domain.usecase.gps.*
 // Sprint 3: import com.example.fitgen.domain.usecase.bodymetric.*
-// Sprint 2: import com.example.fitgen.presentation.screens.workout.WorkoutViewModel
+import com.example.fitgen.presentation.screens.workout.WorkoutListViewModel
 // Sprint 2: import com.example.fitgen.presentation.screens.meal.MealViewModel
 // Sprint 2: import com.example.fitgen.presentation.screens.gps.GpsViewModel
 // Sprint 2: import com.example.fitgen.presentation.screens.ai.AIViewModel
@@ -71,7 +72,7 @@ val repositoryModule = module {
     singleOf(::AIRepositoryImpl) bind AIRepository::class
 
     // --- Workout Repository (Sprint 2) ---
-    // singleOf(::WorkoutRepositoryImpl) bind WorkoutRepository::class
+    singleOf(::WorkoutRepositoryImpl) bind WorkoutRepository::class
 
     // --- Meal / Nutrition Repository (Sprint 2) ---
     // singleOf(::MealRepositoryImpl) bind MealRepository::class
@@ -93,8 +94,8 @@ val useCaseModule = module {
     // singleOf(::AnalyzeNutritionUseCase)
 
     // --- Workout Use Cases (Sprint 2) ---
-    // singleOf(::GetAllWorkoutsUseCase)
-    // singleOf(::SaveWorkoutUseCase)
+    singleOf(::GetAllWorkoutsUseCase)
+    singleOf(::LogWorkoutUseCase)
     // singleOf(::DeleteWorkoutUseCase)
     // singleOf(::GetWorkoutByIdUseCase)
 
@@ -124,7 +125,7 @@ val viewModelModule = module {
     // viewModelOf(::AIViewModel)
 
     // --- Workout ViewModel (Sprint 2) ---
-    // viewModelOf(::WorkoutViewModel)
+    viewModelOf(::WorkoutListViewModel)
 
     // --- Meal ViewModel (Sprint 2) ---
     // viewModelOf(::MealViewModel)
