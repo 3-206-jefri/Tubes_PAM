@@ -388,7 +388,7 @@ Sebelum mengubah template, pastikan:
 ```bash
 # Di Android Studio:
 # Right-click package > Refactor > Rename
-# com.example.fitgen → com.example.todomaster
+# com.example.noteai → com.example.todomaster
 ```
 
 #### Step 2: Update Model

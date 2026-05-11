@@ -13,11 +13,11 @@
 }
 
 # Keep serializable classes
--keep,includedescriptorclasses class com.example.fitgen.**$$serializer { *; }
--keepclassmembers class com.example.fitgen.** {
+-keep,includedescriptorclasses class com.example.noteai.**$$serializer { *; }
+-keepclassmembers class com.example.noteai.** {
     *** Companion;
 }
--keepclasseswithmembers class com.example.fitgen.** {
+-keepclasseswithmembers class com.example.noteai.** {
     kotlinx.serialization.KSerializer serializer(...);
 }
 
@@ -35,7 +35,7 @@
 -dontwarn java.lang.management.**
 
 # Keep SQLDelight generated classes
--keep class com.example.fitgen.data.local.** { *; }
+-keep class com.example.noteai.data.local.** { *; }
 
 # Keep Koin DI metadata + ViewModel constructors agar reflection-based
 # resolution tidak ke-strip oleh R8.
