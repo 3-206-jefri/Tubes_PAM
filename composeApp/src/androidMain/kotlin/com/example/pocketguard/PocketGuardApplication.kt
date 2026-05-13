@@ -1,8 +1,8 @@
-package com.example.noteai
+package com.example.pocketguard
 
 import android.app.Application
-import com.example.noteai.core.di.androidModule
-import com.example.noteai.core.di.initKoin
+import com.example.pocketguard.core.di.androidModule
+import com.example.pocketguard.core.di.initKoin
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
 

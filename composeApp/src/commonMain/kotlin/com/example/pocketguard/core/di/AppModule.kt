@@ -58,6 +58,7 @@ val preferencesModule = module {
 val repositoryModule = module {
     singleOf(::NoteRepositoryImpl) bind NoteRepository::class
     singleOf(::AIRepositoryImpl) bind AIRepository::class
+    single<TransactionRepository> { TransactionRepositoryImpl(get()) }
 }
 
 // ==================== USE CASE MODULE ====================
