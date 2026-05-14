@@ -1,4 +1,4 @@
-package com.example.noteai.presentation.theme
+package com.example.pocketguard.presentation.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
@@ -8,7 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
 // ==================== COLORS ====================
-
+// Anda bisa mengubah nilai Hex ini jika ingin warna yang lebih khas "Finance"
 private val Primary = Color(0xFF6750A4)
 private val OnPrimary = Color(0xFFFFFFFF)
 private val PrimaryContainer = Color(0xFFEADDFF)
@@ -103,12 +103,12 @@ private val DarkColorScheme = darkColorScheme(
 // ==================== THEME ====================
 
 @Composable
-fun NoteAITheme(
+fun PocketGuardTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
-    
+
     MaterialTheme(
         colorScheme = colorScheme,
         content = content

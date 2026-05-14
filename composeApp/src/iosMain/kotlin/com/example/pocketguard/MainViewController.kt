@@ -1,7 +1,7 @@
-package com.example.noteai
+package com.example.pocketguard
 
 import androidx.compose.ui.window.ComposeUIViewController
-import com.example.noteai.core.di.initKoinIOS
+import com.example.pocketguard.core.di.initKoinIOS
 
 /**
  * iOS Main View Controller Factory

@@ -152,8 +152,8 @@ android {
 
 sqldelight {
     databases {
-        create("NoteDatabase") {
-            packageName.set("com.example.noteai.data.local")
+        create("PocketGuardDatabase") {
+            packageName.set("com.example.pocketguard.data.local")
         }
     }
 }

@@ -1,19 +1,9 @@
-package com.example.noteai.presentation.screens.home
+package com.example.pocketguard.presentation.screens.home
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -21,56 +11,43 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.outlined.AutoAwesome
-import androidx.compose.material.icons.outlined.NoteAlt
 import androidx.compose.material.icons.outlined.Sort
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.noteai.domain.model.Note
-import com.example.noteai.domain.model.NoteCategory
-import com.example.noteai.domain.usecase.NoteSortBy
-import com.example.noteai.presentation.components.EmptyState
-import com.example.noteai.presentation.components.ErrorState
-import com.example.noteai.presentation.components.LoadingIndicator
-import com.example.noteai.presentation.components.NoteCard
+import com.example.pocketguard.domain.model.Transaction
+import com.example.pocketguard.domain.model.TransactionCategory
+import com.example.pocketguard.domain.usecase.TransactionSortBy
+import com.example.pocketguard.presentation.components.EmptyState
+import com.example.pocketguard.presentation.components.ErrorState
+import com.example.pocketguard.presentation.components.LoadingIndicator
+import com.example.pocketguard.presentation.components.TransactionCard
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    onNavigateToAddNote: () -> Unit,
+    onNavigateToAdd: () -> Unit,
     onNavigateToDetail: (Long) -> Unit,
     onNavigateToAI: () -> Unit,
     viewModel: HomeViewModel = koinViewModel()
 ) {
+    // Menggunakan state dari ViewModel
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val currentSortBy by viewModel.sortBy.collectAsStateWithLifecycle()
+
     var showSearch by remember { mutableStateOf(false) }
     var showSortMenu by remember { mutableStateOf(false) }
-    
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { 
+                title = {
                     if (showSearch) {
                         SearchField(
                             query = when (val state = uiState) {
@@ -85,7 +62,7 @@ fun HomeScreen(
                             }
                         )
                     } else {
-                        Text("NoteAI")
+                        Text("PocketGuard")
                     }
                 },
                 actions = {
@@ -93,31 +70,31 @@ fun HomeScreen(
                         IconButton(onClick = { showSearch = true }) {
                             Icon(Icons.Default.Search, contentDescription = "Cari")
                         }
-                        
+
                         IconButton(onClick = { showSortMenu = true }) {
                             Icon(Icons.Outlined.Sort, contentDescription = "Urutkan")
                         }
-                        
+
                         SortDropdownMenu(
                             expanded = showSortMenu,
                             currentSortBy = currentSortBy,
-                            onSortSelected = { 
+                            onSortSelected = {
                                 viewModel.onSortByChanged(it)
                                 showSortMenu = false
                             },
                             onDismiss = { showSortMenu = false }
                         )
                     }
-                    
+
                     IconButton(onClick = onNavigateToAI) {
-                        Icon(Icons.Outlined.AutoAwesome, contentDescription = "AI Assistant")
+                        Icon(Icons.Outlined.AutoAwesome, contentDescription = "AI Analyzer")
                     }
                 }
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = onNavigateToAddNote) {
-                Icon(Icons.Default.Add, contentDescription = "Tambah Catatan")
+            FloatingActionButton(onClick = onNavigateToAdd) {
+                Icon(Icons.Default.Add, contentDescription = "Tambah Transaksi")
             }
         }
     ) { paddingValues ->
@@ -126,6 +103,7 @@ fun HomeScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
+            // Baris Filter Kategori
             CategoryFilterRow(
                 selectedCategory = when (val state = uiState) {
                     is HomeUiState.Success -> state.category
@@ -134,36 +112,25 @@ fun HomeScreen(
                 },
                 onCategorySelected = viewModel::onCategorySelected
             )
-            
+
             when (val state = uiState) {
-                is HomeUiState.Loading -> {
-                    LoadingIndicator()
-                }
-                
+                is HomeUiState.Loading -> LoadingIndicator()
+
                 is HomeUiState.Success -> {
-                    NotesList(
-                        notes = state.notes,
-                        onNoteClick = onNavigateToDetail,
-                        onPinClick = viewModel::togglePin,
-                        onDeleteClick = viewModel::deleteNote
+                    TransactionsList(
+                        transactions = state.transactions,
+                        onTransactionClick = onNavigateToDetail,
+                        onDeleteClick = viewModel::deleteTransaction
                     )
                 }
-                
+
                 is HomeUiState.Empty -> {
                     EmptyState(
-                        title = if (state.query.isNotBlank() || state.category != null) {
-                            "Tidak Ditemukan"
-                        } else {
-                            "Belum Ada Catatan"
-                        },
-                        message = if (state.query.isNotBlank() || state.category != null) {
-                            "Coba ubah kata kunci atau filter"
-                        } else {
-                            "Tap + untuk membuat catatan baru"
-                        },
+                        title = if (state.query.isNotBlank() || state.category != null) "Tidak Ditemukan" else "Belum Ada Transaksi",
+                        message = if (state.query.isNotBlank() || state.category != null) "Coba ubah kata kunci atau filter" else "Mulai catat keuanganmu sekarang",
                         icon = {
                             Icon(
-                                Icons.Outlined.NoteAlt,
+                                Icons.Outlined.AccountBalanceWallet,
                                 contentDescription = null,
                                 modifier = Modifier.size(64.dp),
                                 tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
@@ -171,7 +138,7 @@ fun HomeScreen(
                         }
                     )
                 }
-                
+
                 is HomeUiState.Error -> {
                     ErrorState(
                         message = state.message,
@@ -192,15 +159,11 @@ private fun SearchField(
     OutlinedTextField(
         value = query,
         onValueChange = onQueryChange,
-        placeholder = { Text("Cari catatan...") },
+        placeholder = { Text("Cari deskripsi transaksi...") },
         singleLine = true,
         modifier = Modifier.fillMaxWidth(),
         trailingIcon = {
-            AnimatedVisibility(
-                visible = query.isNotBlank(),
-                enter = fadeIn(),
-                exit = fadeOut()
-            ) {
+            AnimatedVisibility(visible = query.isNotBlank(), enter = fadeIn(), exit = fadeOut()) {
                 IconButton(onClick = onClear) {
                     Icon(Icons.Default.Close, contentDescription = "Hapus")
                 }
@@ -212,20 +175,15 @@ private fun SearchField(
 @Composable
 private fun SortDropdownMenu(
     expanded: Boolean,
-    currentSortBy: NoteSortBy,
-    onSortSelected: (NoteSortBy) -> Unit,
+    currentSortBy: TransactionSortBy,
+    onSortSelected: (TransactionSortBy) -> Unit,
     onDismiss: () -> Unit
 ) {
-    DropdownMenu(
-        expanded = expanded,
-        onDismissRequest = onDismiss
-    ) {
-        NoteSortBy.entries.forEach { sortBy ->
+    DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
+        TransactionSortBy.entries.forEach { sortBy ->
             DropdownMenuItem(
-                text = { 
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                text = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(sortBy.displayName)
                         if (sortBy == currentSortBy) {
                             Spacer(modifier = Modifier.width(8.dp))
@@ -241,8 +199,8 @@ private fun SortDropdownMenu(
 
 @Composable
 private fun CategoryFilterRow(
-    selectedCategory: NoteCategory?,
-    onCategorySelected: (NoteCategory?) -> Unit
+    selectedCategory: TransactionCategory?,
+    onCategorySelected: (TransactionCategory?) -> Unit
 ) {
     LazyRow(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
@@ -255,15 +213,10 @@ private fun CategoryFilterRow(
                 label = { Text("Semua") }
             )
         }
-        
-        items(NoteCategory.entries) { category ->
+        items(TransactionCategory.entries) { category ->
             FilterChip(
                 selected = selectedCategory == category,
-                onClick = { 
-                    onCategorySelected(
-                        if (selectedCategory == category) null else category
-                    )
-                },
+                onClick = { onCategorySelected(if (selectedCategory == category) null else category) },
                 label = { Text(category.displayName) }
             )
         }
@@ -271,25 +224,20 @@ private fun CategoryFilterRow(
 }
 
 @Composable
-private fun NotesList(
-    notes: List<Note>,
-    onNoteClick: (Long) -> Unit,
-    onPinClick: (Long) -> Unit,
+private fun TransactionsList(
+    transactions: List<Transaction>,
+    onTransactionClick: (Long) -> Unit,
     onDeleteClick: (Long) -> Unit
 ) {
     LazyColumn(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        items(
-            items = notes,
-            key = { it.id }
-        ) { note ->
-            NoteCard(
-                note = note,
-                onClick = { onNoteClick(note.id) },
-                onPinClick = { onPinClick(note.id) },
-                onDeleteClick = { onDeleteClick(note.id) }
+        items(items = transactions, key = { it.id }) { transaction ->
+            TransactionCard(
+                transaction = transaction,
+                onClick = { onTransactionClick(transaction.id) },
+                onDeleteClick = { onDeleteClick(transaction.id) }
             )
         }
     }

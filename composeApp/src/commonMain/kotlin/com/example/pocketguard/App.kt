@@ -1,14 +1,14 @@
-package com.example.noteai
+package com.example.pocketguard
 
 import androidx.compose.runtime.Composable
-import com.example.noteai.presentation.navigation.AppNavHost
-import com.example.noteai.presentation.theme.NoteAITheme
+import com.example.pocketguard.presentation.navigation.AppNavHost
+import com.example.pocketguard.presentation.theme.PocketGuardTheme
 import org.koin.compose.KoinContext
 
 @Composable
 fun App() {
     KoinContext {
-        NoteAITheme {
+        PocketGuardTheme {
             AppNavHost()
         }
     }

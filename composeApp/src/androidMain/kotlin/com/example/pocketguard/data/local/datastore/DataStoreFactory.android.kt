@@ -1,4 +1,4 @@
-package com.example.noteai.data.local.datastore
+package com.example.pocketguard.data.local.datastore
 
 import android.content.Context
 

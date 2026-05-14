@@ -1,4 +1,4 @@
-package com.example.noteai.core.util
+package com.example.pocketguard.core.util
 
 import kotlinx.coroutines.delay
 import kotlinx.datetime.Instant

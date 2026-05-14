@@ -1,17 +1,15 @@
-package com.example.noteai.presentation
+package com.example.pocketguard.presentation
 
 import app.cash.turbine.test
-import com.example.noteai.data.repository.FakeNoteRepository
-import com.example.noteai.domain.model.Note
-import com.example.noteai.domain.model.NoteCategory
-import com.example.noteai.domain.model.NoteColor
-import com.example.noteai.domain.repository.NoteRepository
-import com.example.noteai.domain.usecase.DeleteNoteUseCase
-import com.example.noteai.domain.usecase.GetAllNotesUseCase
-import com.example.noteai.domain.usecase.NoteSortBy
-import com.example.noteai.domain.usecase.SearchNotesUseCase
-import com.example.noteai.presentation.screens.home.HomeUiState
-import com.example.noteai.presentation.screens.home.HomeViewModel
+import com.example.pocketguard.data.repository.FakeNoteRepository
+import com.example.pocketguard.domain.model.Note
+import com.example.pocketguard.domain.model.NoteCategory
+import com.example.pocketguard.domain.model.NoteColor
+import com.example.pocketguard.domain.usecase.DeleteNoteUseCase
+import com.example.pocketguard.domain.usecase.GetAllNotesUseCase
+import com.example.pocketguard.domain.usecase.SearchNotesUseCase
+import com.example.pocketguard.presentation.screens.home.HomeUiState
+import com.example.pocketguard.presentation.screens.home.HomeViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher

@@ -1,4 +1,4 @@
-package com.example.noteai.domain.repository
+package com.example.pocketguard.domain.repository
 
 interface AIRepository {
     suspend fun summarize(text: String): Result<String>

@@ -1,29 +1,26 @@
-package com.example.noteai.presentation.navigation
+package com.example.pocketguard.presentation.navigation
 
 import kotlinx.serialization.Serializable
 
+@Serializable
 sealed interface Route {
-    
     @Serializable
     data object Home : Route
-    
+
     @Serializable
-    data class AddNote(val noteId: Long? = null) : Route
-    
+    data class AddTransaction(val transactionId: Long? = null) : Route
+
     @Serializable
-    data class NoteDetail(val noteId: Long) : Route
-    
+    data class TransactionDetail(val transactionId: Long) : Route
+
     @Serializable
-    data class AIAssistant(
-        val noteId: Long? = null,
-        val initialText: String? = null
-    ) : Route
+    data class AIAssistant(val initialText: String? = null) : Route
 }
 
 interface NavigationActions {
     fun navigateToHome()
-    fun navigateToAddNote(noteId: Long? = null)
-    fun navigateToNoteDetail(noteId: Long)
-    fun navigateToAIAssistant(noteId: Long? = null, initialText: String? = null)
+    fun navigateToAddTransaction(transactionId: Long? = null)
+    fun navigateToTransactionDetail(transactionId: Long)
+    fun navigateToAIAssistant(initialText: String? = null)
     fun navigateBack()
 }

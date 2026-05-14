@@ -1,128 +1,107 @@
-package com.example.noteai.presentation.screens.home
+package com.example.pocketguard.presentation.screens.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.noteai.domain.model.Note
-import com.example.noteai.domain.model.NoteCategory
-import com.example.noteai.domain.repository.NoteRepository
-import com.example.noteai.domain.usecase.DeleteNoteUseCase
-import com.example.noteai.domain.usecase.GetAllNotesUseCase
-import com.example.noteai.domain.usecase.NoteSortBy
-import com.example.noteai.domain.usecase.SearchNotesUseCase
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.stateIn
+import com.example.pocketguard.domain.model.Transaction
+import com.example.pocketguard.domain.model.TransactionCategory
+import com.example.pocketguard.domain.usecase.DeleteTransactionUseCase
+import com.example.pocketguard.domain.usecase.GetAllTransactionsUseCase
+import com.example.pocketguard.domain.usecase.TransactionSortBy
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
-@OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
 class HomeViewModel(
-    private val getAllNotesUseCase: GetAllNotesUseCase,
-    private val searchNotesUseCase: SearchNotesUseCase,
-    private val deleteNoteUseCase: DeleteNoteUseCase,
-    private val repository: NoteRepository
+    private val getAllTransactionsUseCase: GetAllTransactionsUseCase,
+    private val deleteTransactionUseCase: DeleteTransactionUseCase
 ) : ViewModel() {
-    
-    private val _searchQuery = MutableStateFlow("")
-    private val _selectedCategory = MutableStateFlow<NoteCategory?>(null)
-    private val _sortBy = MutableStateFlow(NoteSortBy.UPDATED_DESC)
-    private val _isLoading = MutableStateFlow(false)
-    
-    private val debouncedSearchQuery = _searchQuery.debounce(300)
-    
-    val sortBy: StateFlow<NoteSortBy> = _sortBy
-    
+
+    private val _query = MutableStateFlow("")
+    private val _selectedCategory = MutableStateFlow<TransactionCategory?>(null)
+    private val _sortBy = MutableStateFlow(TransactionSortBy.DATE_DESC)
+    val sortBy: StateFlow<TransactionSortBy> = _sortBy.asStateFlow()
+
+    // Menggabungkan aliran data (Search, Filter, Sort, dan Database)
     val uiState: StateFlow<HomeUiState> = combine(
-        debouncedSearchQuery,
+        _query,
         _selectedCategory,
-        _sortBy
-    ) { query, category, sortBy ->
-        Triple(query, category, sortBy)
-    }.flatMapLatest { (query, category, sortBy) ->
-        if (query.isBlank() && category == null) {
-            getAllNotesUseCase(sortBy)
+        _sortBy,
+        getAllTransactionsUseCase()
+    ) { query, category, sort, transactions ->
+        // 1. Filter berdasarkan pencarian deskripsi
+        val filteredByQuery = if (query.isBlank()) {
+            transactions
         } else {
-            searchNotesUseCase(query, category)
+            transactions.filter { it.description.contains(query, ignoreCase = true) }
         }
-    }.combine(_isLoading) { notes, isLoading ->
-        when {
-            isLoading -> HomeUiState.Loading
-            notes.isEmpty() -> HomeUiState.Empty(
-                query = _searchQuery.value,
-                category = _selectedCategory.value
-            )
-            else -> HomeUiState.Success(
-                notes = notes,
-                query = _searchQuery.value,
-                category = _selectedCategory.value,
-                sortBy = _sortBy.value
-            )
+
+        // 2. Filter berdasarkan kategori
+        val filteredByCategory = if (category == null) {
+            filteredByQuery
+        } else {
+            filteredByQuery.filter { it.category == category }
         }
-    }.catch { e ->
-        emit(HomeUiState.Error(e.message ?: "Terjadi kesalahan"))
+
+        // 3. Urutkan data (Logika sorting sudah ada di UseCase, tapi bisa dipertegas di sini)
+        val sortedTransactions = when (sort) {
+            TransactionSortBy.DATE_ASC -> filteredByCategory.sortedBy { it.createdAt }
+            TransactionSortBy.DATE_DESC -> filteredByCategory.sortedByDescending { it.createdAt }
+            TransactionSortBy.AMOUNT_ASC -> filteredByCategory.sortedBy { it.amount }
+            TransactionSortBy.AMOUNT_DESC -> filteredByCategory.sortedByDescending { it.amount }
+            TransactionSortBy.CATEGORY -> filteredByCategory.sortedBy { it.category.name }
+        }
+
+        if (sortedTransactions.isEmpty()) {
+            HomeUiState.Empty(query, category)
+        } else {
+            HomeUiState.Success(sortedTransactions, query, category)
+        }
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = HomeUiState.Loading
     )
-    
+
     // ==================== USER ACTIONS ====================
-    
-    fun onSearchQueryChange(query: String) {
-        _searchQuery.value = query
+
+    fun onSearchQueryChange(newQuery: String) {
+        _query.value = newQuery
     }
-    
+
     fun clearSearch() {
-        _searchQuery.value = ""
+        _query.value = ""
+        _selectedCategory.value = null
     }
-    
-    fun onCategorySelected(category: NoteCategory?) {
+
+    fun onCategorySelected(category: TransactionCategory?) {
         _selectedCategory.value = category
     }
-    
-    fun onSortByChanged(sortBy: NoteSortBy) {
-        _sortBy.value = sortBy
+
+    fun onSortByChanged(sort: TransactionSortBy) {
+        _sortBy.value = sort
     }
-    
-    fun togglePin(noteId: Long) {
+
+    fun deleteTransaction(id: Long) {
         viewModelScope.launch {
-            repository.togglePinNote(noteId)
-        }
-    }
-    
-    fun deleteNote(noteId: Long) {
-        viewModelScope.launch {
-            deleteNoteUseCase(noteId)
-        }
-    }
-    
-    fun deleteNotes(noteIds: List<Long>) {
-        viewModelScope.launch {
-            repository.deleteNotes(noteIds)
+            deleteTransactionUseCase(id)
         }
     }
 }
 
+// ==================== UI STATE MODELS ====================
+
 sealed interface HomeUiState {
     data object Loading : HomeUiState
-    
+
     data class Success(
-        val notes: List<Note>,
-        val query: String = "",
-        val category: NoteCategory? = null,
-        val sortBy: NoteSortBy = NoteSortBy.UPDATED_DESC
+        val transactions: List<Transaction>,
+        val query: String,
+        val category: TransactionCategory?
     ) : HomeUiState
-    
+
     data class Empty(
-        val query: String = "",
-        val category: NoteCategory? = null
+        val query: String,
+        val category: TransactionCategory?
     ) : HomeUiState
-    
+
     data class Error(val message: String) : HomeUiState
 }

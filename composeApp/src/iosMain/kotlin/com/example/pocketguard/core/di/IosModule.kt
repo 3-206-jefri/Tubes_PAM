@@ -1,7 +1,7 @@
-package com.example.noteai.core.di
+package com.example.pocketguard.core.di
 
-import com.example.noteai.core.util.DatabaseDriverFactory
-import com.example.noteai.data.local.datastore.DataStoreFactory
+import com.example.pocketguard.core.util.DatabaseDriverFactory
+import com.example.pocketguard.data.local.datastore.DataStoreFactory
 import org.koin.dsl.module
 
 /**

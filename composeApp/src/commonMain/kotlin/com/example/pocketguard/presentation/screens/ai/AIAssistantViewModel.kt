@@ -1,12 +1,8 @@
-package com.example.noteai.presentation.screens.ai
+package com.example.pocketguard.presentation.screens.ai
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.noteai.domain.repository.AIRepository
-import com.example.noteai.domain.repository.WritingStyle
-import com.example.noteai.domain.usecase.GenerateIdeasUseCase
-import com.example.noteai.domain.usecase.ImproveWritingUseCase
-import com.example.noteai.domain.usecase.SummarizeNoteUseCase
+import com.example.pocketguard.domain.repository.AIRepository
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -17,140 +13,112 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class AIAssistantViewModel(
-    private val aiRepository: AIRepository,
-    private val summarizeUseCase: SummarizeNoteUseCase,
-    private val improveWritingUseCase: ImproveWritingUseCase,
-    private val generateIdeasUseCase: GenerateIdeasUseCase
+    private val aiRepository: AIRepository
 ) : ViewModel() {
-    
+
     private val _uiState = MutableStateFlow(AIAssistantUiState())
     val uiState: StateFlow<AIAssistantUiState> = _uiState.asStateFlow()
-    
+
     private val _events = MutableSharedFlow<AIAssistantEvent>()
     val events: SharedFlow<AIAssistantEvent> = _events.asSharedFlow()
-    
+
     fun setInitialText(text: String?) {
-        text?.let {
-            _uiState.update { state -> state.copy(inputText = it) }
+        if (text != null && _uiState.value.inputText.isBlank()) {
+            _uiState.update { it.copy(inputText = text) }
         }
     }
-    
+
     fun onInputTextChange(text: String) {
         _uiState.update { it.copy(inputText = text, error = null) }
     }
-    
+
     fun onActionSelected(action: AIAction) {
         _uiState.update { it.copy(selectedAction = action) }
     }
-    
+
     fun executeAction() {
         val state = _uiState.value
-        
         if (state.inputText.isBlank()) {
-            _uiState.update { it.copy(error = "Masukkan teks terlebih dahulu") }
+            _uiState.update { it.copy(error = "Masukkan konteks data atau pertanyaan") }
             return
         }
-        
-        _uiState.update { it.copy(isLoading = true, error = null, result = null) }
-        
+
+        _uiState.update { it.copy(isLoading = true, result = null, error = null) }
+
         viewModelScope.launch {
-            val result = when (state.selectedAction) {
-                AIAction.SUMMARIZE -> summarize(state.inputText)
-                AIAction.GENERATE_IDEAS -> generateIdeas(state.inputText)
-                AIAction.IMPROVE_WRITING -> improveWriting(state.inputText, state.writingStyle)
-                AIAction.TRANSLATE -> translate(state.inputText, state.targetLanguage)
-                AIAction.SUGGEST_TITLE -> suggestTitle(state.inputText)
-                AIAction.CHAT -> chat(state.inputText)
+            // Membangun prompt berdasarkan aksi yang dipilih
+            val prompt = buildPrompt(state.selectedAction, state.inputText)
+
+            val result = aiRepository.summarize(prompt)
+
+            result.onSuccess { text ->
+                _uiState.update { it.copy(result = text, isLoading = false) }
+            }.onFailure { err ->
+                _uiState.update { it.copy(isLoading = false, error = err.message) }
+                _events.emit(AIAssistantEvent.Error(err.message ?: "Gagal terhubung ke AI"))
             }
-            
-            result
-                .onSuccess { output ->
-                    _uiState.update { it.copy(isLoading = false, result = output) }
-                }
-                .onFailure { error ->
-                    _uiState.update { it.copy(isLoading = false, error = error.message ?: "Terjadi kesalahan") }
-                }
         }
     }
-    
+
+    private fun buildPrompt(action: AIAction, context: String): String {
+        return when (action) {
+            AIAction.ANALYZE -> """
+                Sebagai asisten keuangan PocketGuard, analisis data transaksi berikut. 
+                Berikan ringkasan pengeluaran dan kategori apa yang paling boros:
+                $context
+            """.trimIndent()
+
+            AIAction.SAVING_TIPS -> """
+                Berdasarkan data keuangan berikut, berikan 3 tips spesifik untuk menghemat uang 
+                dan memperbaiki kebiasaan belanja user:
+                $context
+            """.trimIndent()
+
+            AIAction.PLANNING -> """
+                Bantu user membuat rencana anggaran (budgeting) untuk bulan depan 
+                berdasarkan pola transaksi ini:
+                $context
+            """.trimIndent()
+        }
+    }
+
     fun copyResult() {
-        val result = _uiState.value.result
-        if (result != null) {
+        _uiState.value.result?.let {
             viewModelScope.launch {
-                _events.emit(AIAssistantEvent.CopyToClipboard(result))
+                _events.emit(AIAssistantEvent.CopyToClipboard(it))
             }
         }
     }
-    
-    fun applyToNote() {
-        val result = _uiState.value.result
-        if (result != null) {
+
+    fun applyToTransaction() {
+        _uiState.value.result?.let {
             viewModelScope.launch {
-                _events.emit(AIAssistantEvent.ApplyToNote(result))
+                _events.emit(AIAssistantEvent.ApplyToTransaction(it))
             }
         }
-    }
-    
-    fun onWritingStyleChange(style: WritingStyle) {
-        _uiState.update { it.copy(writingStyle = style) }
-    }
-    
-    fun onTargetLanguageChange(language: String) {
-        _uiState.update { it.copy(targetLanguage = language) }
-    }
-    
-    // ==================== AI OPERATIONS ====================
-    
-    private suspend fun summarize(text: String): Result<String> {
-        return summarizeUseCase(text)
-    }
-    
-    private suspend fun generateIdeas(topic: String): Result<String> {
-        return generateIdeasUseCase(topic).map { ideas ->
-            ideas.mapIndexed { index, idea -> "${index + 1}. $idea" }.joinToString("\n")
-        }
-    }
-    
-    private suspend fun improveWriting(text: String, style: WritingStyle): Result<String> {
-        return improveWritingUseCase(text, style)
-    }
-    
-    private suspend fun translate(text: String, targetLanguage: String): Result<String> {
-        return aiRepository.translate(text, targetLanguage)
-    }
-    
-    private suspend fun suggestTitle(content: String): Result<String> {
-        return aiRepository.suggestTitle(content)
-    }
-    
-    private suspend fun chat(message: String): Result<String> {
-        return aiRepository.chat(message)
     }
 }
 
-enum class AIAction(val displayName: String, val description: String) {
-    SUMMARIZE("Ringkas", "Buat ringkasan dari teks"),
-    GENERATE_IDEAS("Ide", "Generate ide berdasarkan topik"),
-    IMPROVE_WRITING("Perbaiki", "Perbaiki tulisan"),
-    TRANSLATE("Terjemah", "Terjemahkan ke bahasa lain"),
-    SUGGEST_TITLE("Judul", "Sarankan judul"),
-    CHAT("Tanya", "Tanya AI tentang apapun")
-}
+// ==================== STATE & MODELS ====================
 
 data class AIAssistantUiState(
     val inputText: String = "",
-    val selectedAction: AIAction = AIAction.SUMMARIZE,
-    val writingStyle: WritingStyle = WritingStyle.NEUTRAL,
-    val targetLanguage: String = "English",
+    val selectedAction: AIAction = AIAction.ANALYZE,
     val isLoading: Boolean = false,
     val result: String? = null,
     val error: String? = null
 ) {
-    val canExecute: Boolean
-        get() = inputText.isNotBlank() && !isLoading
+    val canExecute: Boolean get() = inputText.isNotBlank() && !isLoading
+}
+
+enum class AIAction(val displayName: String, val description: String) {
+    ANALYZE("Analisis", "Menganalisis pola transaksi kamu."),
+    SAVING_TIPS("Tips Hemat", "Saran cara menghemat pengeluaran."),
+    PLANNING("Budgeting", "Membantu merencanakan anggaran.")
 }
 
 sealed interface AIAssistantEvent {
     data class CopyToClipboard(val text: String) : AIAssistantEvent
-    data class ApplyToNote(val text: String) : AIAssistantEvent
+    data class ApplyToTransaction(val text: String) : AIAssistantEvent
+    data class Error(val message: String) : AIAssistantEvent
 }

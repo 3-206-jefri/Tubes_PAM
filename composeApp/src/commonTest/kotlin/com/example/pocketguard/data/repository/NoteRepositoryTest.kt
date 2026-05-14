@@ -1,16 +1,16 @@
-package com.example.noteai.data.repository
+package com.example.pocketguard.data.repository
 
 import app.cash.turbine.test
-import com.example.noteai.domain.model.Note
-import com.example.noteai.domain.model.NoteCategory
-import com.example.noteai.domain.model.NoteColor
-import com.example.noteai.domain.repository.NoteRepository
+import com.example.pocketguard.domain.model.Note
+import com.example.pocketguard.domain.model.NoteCategory
+import com.example.pocketguard.domain.model.NoteColor
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.Clock
+import kotlin.collections.map
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals

@@ -1,6 +1,6 @@
-package com.example.noteai.core.network
+package com.example.pocketguard.core.network
 
-import com.example.noteai.BuildConfig
+import com.example.pocketguard.BuildConfig
 
 /**
  * Android implementation of ApiConfig

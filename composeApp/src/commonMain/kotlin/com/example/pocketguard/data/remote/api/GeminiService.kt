@@ -1,13 +1,13 @@
-package com.example.noteai.data.remote.api
+package com.example.pocketguard.data.remote.api
 
-import com.example.noteai.core.network.ApiConfig
-import com.example.noteai.data.remote.dto.GeminiContent
-import com.example.noteai.data.remote.dto.GeminiPart
-import com.example.noteai.data.remote.dto.GeminiRequest
-import com.example.noteai.data.remote.dto.GeminiResponse
-import com.example.noteai.data.remote.dto.GenerationConfig
-import com.example.noteai.data.remote.dto.getErrorMessage
-import com.example.noteai.data.remote.dto.getTextContent
+import com.example.pocketguard.core.network.ApiConfig
+import com.example.pocketguard.data.remote.dto.GeminiContent
+import com.example.pocketguard.data.remote.dto.GeminiPart
+import com.example.pocketguard.data.remote.dto.GeminiRequest
+import com.example.pocketguard.data.remote.dto.GeminiResponse
+import com.example.pocketguard.data.remote.dto.GenerationConfig
+import com.example.pocketguard.data.remote.dto.getErrorMessage
+import com.example.pocketguard.data.remote.dto.getTextContent
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.parameter

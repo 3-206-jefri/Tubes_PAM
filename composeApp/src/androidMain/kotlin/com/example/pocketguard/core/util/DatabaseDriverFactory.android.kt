@@ -1,9 +1,9 @@
-package com.example.noteai.core.util
+package com.example.pocketguard.core.util
 
 import android.content.Context
 import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.android.AndroidSqliteDriver
-import com.example.noteai.data.local.NoteDatabase
+import com.example.pocketguard.data.local.PocketGuardDatabase
 
 /**
  * Android implementation of DatabaseDriverFactory
@@ -11,14 +11,12 @@ import com.example.noteai.data.local.NoteDatabase
  * Menggunakan AndroidSqliteDriver yang membungkus SQLite bawaan Android.
  * Database disimpan di internal storage aplikasi.
  */
-actual class DatabaseDriverFactory(
-    private val context: Context
-) {
+actual class DatabaseDriverFactory(private val context: Context) {
     actual fun createDriver(): SqlDriver {
         return AndroidSqliteDriver(
-            schema = NoteDatabase.Schema,
+            schema = PocketGuardDatabase.Schema, // Ubah ini
             context = context,
-            name = "noteai.db"
+            name = "pocketguard.db" // Opsional: ubah nama file db-nya
         )
     }
 }

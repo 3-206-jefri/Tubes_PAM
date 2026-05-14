@@ -1,4 +1,4 @@
-package com.example.noteai.data.local.datastore
+package com.example.pocketguard.data.local.datastore
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
