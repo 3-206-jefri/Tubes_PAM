@@ -27,6 +27,7 @@ import com.example.pocketguard.domain.model.TransactionCategory
 import com.example.pocketguard.domain.model.TransactionType
 import com.example.pocketguard.presentation.components.LoadingIndicator
 import org.koin.compose.viewmodel.koinViewModel
+import androidx.compose.material.icons.outlined.CheckCircle
 
 private val GreenDark = Color(0xFF1B5E20)
 private val GreenLight = Color(0xFF43A047)
@@ -199,11 +200,21 @@ fun AddTransactionScreen(
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.SemiBold
                     )
-                    CategoryGrid(
-                        selectedCategory = uiState.category,
-                        onCategorySelected = viewModel::onCategoryChange,
-                        accentColor = accentColor
-                    )
+
+                    if (initialCategory != null) {
+                        // ✅ Dari bottom sheet: tampilkan hanya kategori yang dipilih
+                        SelectedCategoryBadge(
+                            category = uiState.category,
+                            accentColor = accentColor
+                        )
+                    } else {
+                        // ✅ Masuk manual: tampilkan semua pilihan kategori
+                        CategoryGrid(
+                            selectedCategory = uiState.category,
+                            onCategorySelected = viewModel::onCategoryChange,
+                            accentColor = accentColor
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -285,7 +296,6 @@ private fun CategoryGrid(
         TransactionCategory.SALARY to "💵",
         TransactionCategory.OTHER to "📦"
     )
-
     val chunked = TransactionCategory.entries.chunked(3)
     chunked.forEach { rowItems ->
         Row(
@@ -329,5 +339,54 @@ private fun CategoryGrid(
             }
         }
         Spacer(modifier = Modifier.height(8.dp))
+    }
+}
+
+@Composable
+private fun SelectedCategoryBadge(
+    category: TransactionCategory,
+    accentColor: Color
+) {
+    val categoryEmojis = mapOf(
+        TransactionCategory.FOOD to "🍜",
+        TransactionCategory.TRANSPORT to "🚗",
+        TransactionCategory.BILLS to "🏠",
+        TransactionCategory.SALARY to "💵",
+        TransactionCategory.OTHER to "📦"
+    )
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(accentColor.copy(alpha = 0.10f))
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text(
+            text = categoryEmojis[category] ?: "📦",
+            fontSize = 28.sp
+        )
+        Column {
+            Text(
+                text = category.displayName,
+                fontWeight = FontWeight.SemiBold,
+                color = accentColor,
+                fontSize = 15.sp
+            )
+            Text(
+                text = "Dipilih dari menu cepat",
+                style = MaterialTheme.typography.labelSmall,
+                color = accentColor.copy(alpha = 0.6f)
+            )
+        }
+        Spacer(modifier = Modifier.weight(1f))
+        Icon(
+            imageVector = Icons.Outlined.CheckCircle,
+            contentDescription = null,
+            tint = accentColor,
+            modifier = Modifier.size(20.dp)
+        )
     }
 }
