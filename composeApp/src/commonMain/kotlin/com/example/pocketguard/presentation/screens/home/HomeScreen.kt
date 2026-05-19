@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -21,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -45,7 +47,8 @@ private val ExpenseRed = Color(0xFFB71C1C)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    onNavigateToAdd: () -> Unit,
+    // ✅ DIPERBAIKI: onNavigateToAdd sekarang menerima type & category
+    onNavigateToAdd: (type: String?, category: String?) -> Unit,
     onNavigateToDetail: (Long) -> Unit,
     onNavigateToAI: () -> Unit,
     onNavigateToSettings: () -> Unit,
@@ -56,11 +59,32 @@ fun HomeScreen(
 
     var showSearch by remember { mutableStateOf(false) }
     var showSortMenu by remember { mutableStateOf(false) }
+    var showAddBottomSheet by remember { mutableStateOf(false) }
+
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     // Hitung summary dari semua transaksi (tidak terpengaruh filter)
     val allTransactions = when (val state = uiState) {
         is HomeUiState.Success -> state.transactions
         else -> emptyList()
+    }
+
+    // ===== BOTTOM SHEET QUICK-ADD =====
+    if (showAddBottomSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showAddBottomSheet = false },
+            sheetState = sheetState,
+            containerColor = MaterialTheme.colorScheme.surface,
+            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+        ) {
+            AddTransactionBottomSheet(
+                onNavigateToAdd = { type, category ->
+                    showAddBottomSheet = false
+                    onNavigateToAdd(type, category)
+                },
+                onDismiss = { showAddBottomSheet = false }
+            )
+        }
     }
 
     Scaffold(
@@ -117,7 +141,8 @@ fun HomeScreen(
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = onNavigateToAdd,
+                // ✅ FAB sekarang membuka bottom sheet
+                onClick = { showAddBottomSheet = true },
                 containerColor = GreenMid,
                 contentColor = Color.White,
                 shape = RoundedCornerShape(16.dp)
@@ -199,6 +224,198 @@ fun HomeScreen(
                     )
                 }
             }
+        }
+    }
+}
+
+// ===== BOTTOM SHEET QUICK-ADD =====
+@Composable
+private fun AddTransactionBottomSheet(
+    onNavigateToAdd: (type: String?, category: String?) -> Unit,
+    onDismiss: () -> Unit
+) {
+    // State untuk type yang dipilih di bottom sheet (default EXPENSE)
+    var selectedType by remember { mutableStateOf(TransactionType.EXPENSE) }
+
+    val isExpense = selectedType == TransactionType.EXPENSE
+    val accentColor = if (isExpense) ExpenseRed else IncomeGreen
+    val accentColorLight = if (isExpense) Color(0xFFE53935) else GreenLight
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp)
+            .padding(bottom = 32.dp)
+    ) {
+        // Handle bar & header
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Tambah Transaksi",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+            IconButton(onClick = onDismiss) {
+                Icon(Icons.Default.Close, contentDescription = "Tutup")
+            }
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        // Toggle Pengeluaran / Pemasukan
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+                .padding(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            TransactionType.entries.forEach { type ->
+                val isSelected = selectedType == type
+                val btnColor = if (type == TransactionType.EXPENSE) ExpenseRed else IncomeGreen
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(9.dp))
+                        .background(
+                            if (isSelected) btnColor.copy(alpha = 0.15f)
+                            else Color.Transparent
+                        )
+                        .clickable { selectedType = type }
+                        .padding(vertical = 12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = if (type == TransactionType.EXPENSE) "💸 Pengeluaran" else "💰 Pemasukan",
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                        color = if (isSelected) btnColor
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 14.sp
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // Label pilih kategori
+        Text(
+            text = "Pilih Kategori",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Grid kategori — pakai data yang sama persis dengan AddTransactionScreen
+        val categoryEmojis = mapOf(
+            TransactionCategory.FOOD to "🍜",
+            TransactionCategory.TRANSPORT to "🚗",
+            TransactionCategory.BILLS to "🏠",
+            TransactionCategory.SALARY to "💵",
+            TransactionCategory.OTHER to "📦"
+        )
+
+        val categoryLabels = mapOf(
+            TransactionCategory.FOOD to "Makanan",
+            TransactionCategory.TRANSPORT to "Transport",
+            TransactionCategory.BILLS to "Tagihan",
+            TransactionCategory.SALARY to "Gaji",
+            TransactionCategory.OTHER to "Lainnya"
+        )
+
+        // Tampilkan kategori dalam grid 3 kolom + tombol "Isi Manual" di akhir
+        val categories = TransactionCategory.entries
+        val chunked = categories.chunked(3)
+
+        chunked.forEach { rowItems ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                rowItems.forEach { category ->
+                    CategoryQuickButton(
+                        modifier = Modifier.weight(1f),
+                        emoji = categoryEmojis[category] ?: "📦",
+                        label = categoryLabels[category] ?: category.name,
+                        accentColor = accentColor,
+                        onClick = {
+                            onNavigateToAdd(selectedType.name, category.name)
+                        }
+                    )
+                }
+                // Isi sisa kolom jika < 3 item di baris terakhir
+                repeat(3 - rowItems.size) {
+                    Spacer(modifier = Modifier.weight(1f))
+                }
+            }
+            Spacer(modifier = Modifier.height(10.dp))
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Tombol isi manual (tanpa pra-pilih kategori)
+        OutlinedButton(
+            onClick = { onNavigateToAdd(selectedType.name, null) },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.outlinedButtonColors(
+                contentColor = accentColor
+            ),
+            border = androidx.compose.foundation.BorderStroke(1.dp, accentColor.copy(alpha = 0.5f))
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.Edit,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "Isi Detail Manual",
+                fontWeight = FontWeight.Medium,
+                fontSize = 14.sp
+            )
+        }
+    }
+}
+
+@Composable
+private fun CategoryQuickButton(
+    modifier: Modifier = Modifier,
+    emoji: String,
+    label: String,
+    accentColor: Color,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = modifier
+            .clip(RoundedCornerShape(14.dp))
+            .clickable { onClick() },
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(text = emoji, fontSize = 28.sp)
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
@@ -364,7 +581,6 @@ private fun formatAmount(amount: Double): String {
         long >= 1_000_000_000 -> "${long / 1_000_000_000}M"
         long >= 1_000_000 -> "${long / 1_000_000}Jt"
         else -> {
-            // Manual formatting tanpa Java format
             val str = long.toString()
             val result = StringBuilder()
             str.reversed().forEachIndexed { index, c ->
@@ -456,7 +672,7 @@ private fun TransactionsList(
     onDeleteClick: (Long) -> Unit
 ) {
     LazyColumn(
-        contentPadding = PaddingValues(  // ← hanya ganti bagian ini
+        contentPadding = PaddingValues(
             start = 16.dp,
             end = 16.dp,
             top = 4.dp,

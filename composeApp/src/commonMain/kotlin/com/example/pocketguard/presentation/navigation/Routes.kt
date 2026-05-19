@@ -8,7 +8,11 @@ sealed interface Route {
     data object Home : Route
 
     @Serializable
-    data class AddTransaction(val transactionId: Long? = null) : Route
+    data class AddTransaction(
+        val transactionId: Long? = null,
+        val transactionType: String? = null,  // "INCOME" atau "EXPENSE"
+        val transactionCategory: String? = null  // nama kategori
+    ) : Route
 
     @Serializable
     data class TransactionDetail(val transactionId: Long) : Route
@@ -22,10 +26,13 @@ sealed interface Route {
 
 interface NavigationActions {
     fun navigateToHome()
-    fun navigateToAddTransaction(transactionId: Long? = null)
+    fun navigateToAddTransaction(
+        transactionId: Long? = null,
+        transactionType: String? = null,
+        transactionCategory: String? = null
+    )
     fun navigateToTransactionDetail(transactionId: Long)
     fun navigateToAIAssistant(initialText: String? = null)
     fun navigateBack()
-
     fun navigateToSettings()
 }

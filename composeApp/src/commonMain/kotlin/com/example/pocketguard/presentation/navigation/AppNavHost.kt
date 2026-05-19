@@ -27,7 +27,12 @@ fun AppNavHost(
     ) {
         composable<Route.Home> {
             HomeScreen(
-                onNavigateToAdd = { navigationActions.navigateToAddTransaction() },
+                onNavigateToAdd = { type, category ->
+                    navigationActions.navigateToAddTransaction(
+                        transactionType = type,
+                        transactionCategory = category
+                    )
+                },
                 onNavigateToDetail = { id -> navigationActions.navigateToTransactionDetail(id) },
                 onNavigateToAI = { navigationActions.navigateToAIAssistant() },
                 onNavigateToSettings = { navigationActions.navigateToSettings() }
@@ -37,7 +42,9 @@ fun AppNavHost(
         composable<Route.AddTransaction> { backStackEntry ->
             val route: Route.AddTransaction = backStackEntry.toRoute()
             AddTransactionScreen(
-                transactionId = route.transactionId, // Tambahkan ini agar tidak error
+                transactionId = route.transactionId,
+                initialType = route.transactionType,
+                initialCategory = route.transactionCategory,
                 onNavigateBack = { navigationActions.navigateBack() }
             )
         }
@@ -45,7 +52,7 @@ fun AppNavHost(
         composable<Route.TransactionDetail> { backStackEntry ->
             val route: Route.TransactionDetail = backStackEntry.toRoute()
             TransactionDetailScreen(
-                transactionId = route.transactionId, // Tambahkan ini agar tidak error
+                transactionId = route.transactionId,
                 onNavigateBack = { navigationActions.navigateBack() },
                 onNavigateToEdit = { id -> navigationActions.navigateToAddTransaction(id) }
             )
@@ -58,6 +65,7 @@ fun AppNavHost(
                 onNavigateBack = { navigationActions.navigateBack() }
             )
         }
+
         composable<Route.Settings> {
             SettingsScreen(
                 onNavigateBack = { navigationActions.navigateBack() }
@@ -74,12 +82,17 @@ private fun createNavigationActions(navController: NavHostController): Navigatio
             }
         }
 
-        override fun navigateToAddTransaction(transactionId: Long?) {
-            navController.navigate(Route.AddTransaction(transactionId))
+        override fun navigateToAddTransaction(
+            transactionId: Long?,
+            transactionType: String?,
+            transactionCategory: String?
+        ) {
+            navController.navigate(
+                Route.AddTransaction(transactionId, transactionType, transactionCategory)
+            )
         }
 
         override fun navigateToTransactionDetail(transactionId: Long) {
-            // Pastikan transactionId dikirim ke constructor Route
             navController.navigate(Route.TransactionDetail(transactionId))
         }
 
@@ -94,6 +107,5 @@ private fun createNavigationActions(navController: NavHostController): Navigatio
         override fun navigateToSettings() {
             navController.navigate(Route.Settings)
         }
-        }
-
     }
+}

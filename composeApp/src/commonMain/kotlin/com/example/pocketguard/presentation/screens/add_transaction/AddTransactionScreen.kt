@@ -29,7 +29,6 @@ import com.example.pocketguard.presentation.components.LoadingIndicator
 import org.koin.compose.viewmodel.koinViewModel
 
 private val GreenDark = Color(0xFF1B5E20)
-private val GreenMid = Color(0xFF2E7D32)
 private val GreenLight = Color(0xFF43A047)
 private val IncomeGreen = Color(0xFF2E7D32)
 private val ExpenseRed = Color(0xFFB71C1C)
@@ -39,15 +38,25 @@ private val ExpenseRedLight = Color(0xFFE53935)
 @Composable
 fun AddTransactionScreen(
     transactionId: Long?,
+    initialType: String? = null,
+    initialCategory: String? = null,
     onNavigateBack: () -> Unit,
     viewModel: AddTransactionViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    val isExpense = uiState.type == TransactionType.EXPENSE
-    val accentColor = if (isExpense) ExpenseRed else IncomeGreen
-    val accentColorLight = if (isExpense) ExpenseRedLight else GreenLight
+    // Set initial type & category dari bottom sheet
+    LaunchedEffect(initialType, initialCategory) {
+        initialType?.let { typeStr ->
+            val type = runCatching { TransactionType.valueOf(typeStr) }.getOrNull()
+            type?.let { viewModel.onTypeChange(it) }
+        }
+        initialCategory?.let { catStr ->
+            val category = runCatching { TransactionCategory.valueOf(catStr) }.getOrNull()
+            category?.let { viewModel.onCategoryChange(it) }
+        }
+    }
 
     LaunchedEffect(transactionId) {
         transactionId?.let { viewModel.loadTransaction(it) }
@@ -61,6 +70,10 @@ fun AddTransactionScreen(
             }
         }
     }
+
+    val isExpense = uiState.type == TransactionType.EXPENSE
+    val accentColor = if (isExpense) ExpenseRed else IncomeGreen
+    val accentColorLight = if (isExpense) ExpenseRedLight else GreenLight
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -89,14 +102,14 @@ fun AddTransactionScreen(
                     .padding(paddingValues)
                     .verticalScroll(rememberScrollState())
             ) {
-                // ===== HEADER SECTION (Tipe + Nominal) =====
+                // ===== HEADER GRADIENT =====
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(
                             Brush.linearGradient(
                                 colors = if (isExpense)
-                                    listOf(Color(0xFF7F0000), ExpenseRedLight)
+                                    listOf(Color(0xFF7F0000), accentColorLight)
                                 else
                                     listOf(GreenDark, GreenLight)
                             )
@@ -139,7 +152,7 @@ fun AddTransactionScreen(
 
                         Spacer(modifier = Modifier.height(24.dp))
 
-                        // Nominal besar di tengah
+                        // Nominal besar
                         Text(
                             text = "Rp",
                             color = Color.White.copy(alpha = 0.7f),
@@ -160,19 +173,17 @@ fun AddTransactionScreen(
                     }
                 }
 
-                // ===== FORM SECTION =====
+                // ===== FORM =====
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 20.dp, vertical = 20.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    // Input Nama Transaksi
                     Text(
                         text = "Nama Transaksi",
                         style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        fontWeight = FontWeight.SemiBold
                     )
                     OutlinedTextField(
                         value = uiState.description,
@@ -183,12 +194,10 @@ fun AddTransactionScreen(
                         modifier = Modifier.fillMaxWidth()
                     )
 
-                    // Pilihan Kategori sebagai grid chip
                     Text(
                         text = "Kategori",
                         style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        fontWeight = FontWeight.SemiBold
                     )
                     CategoryGrid(
                         selectedCategory = uiState.category,
@@ -197,7 +206,7 @@ fun AddTransactionScreen(
                     )
                 }
 
-                Spacer(modifier = Modifier.weight(1f))
+                Spacer(modifier = Modifier.height(16.dp))
 
                 // ===== TOMBOL SIMPAN =====
                 Box(
@@ -235,7 +244,6 @@ private fun BasicAmountInput(
     onValueChange: (String) -> Unit,
     isError: Boolean
 ) {
-    // Input nominal besar transparan
     androidx.compose.foundation.text.BasicTextField(
         value = value,
         onValueChange = onValueChange,
@@ -278,7 +286,6 @@ private fun CategoryGrid(
         TransactionCategory.OTHER to "📦"
     )
 
-    // 3 kolom grid
     val chunked = TransactionCategory.entries.chunked(3)
     chunked.forEach { rowItems ->
         Row(
@@ -305,10 +312,7 @@ private fun CategoryGrid(
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = categoryEmojis[category] ?: "📦",
-                            fontSize = 22.sp
-                        )
+                        Text(text = categoryEmojis[category] ?: "📦", fontSize = 22.sp)
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = category.displayName,
@@ -320,7 +324,6 @@ private fun CategoryGrid(
                     }
                 }
             }
-            // Isi sisa kolom kalau baris tidak penuh
             repeat(3 - rowItems.size) {
                 Spacer(modifier = Modifier.weight(1f))
             }
