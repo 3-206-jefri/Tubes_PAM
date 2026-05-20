@@ -21,6 +21,9 @@ sealed interface Route {
     data class AIAssistant(val initialText: String? = null) : Route
 
     @Serializable
+    data object Analytics : Route // <--- Ditambahkan untuk menu Grafik ke-4
+
+    @Serializable
     data object Settings : Route
 }
 
@@ -33,6 +36,7 @@ interface NavigationActions {
     )
     fun navigateToTransactionDetail(transactionId: Long)
     fun navigateToAIAssistant(initialText: String? = null)
+    fun navigateToAnalytics() // <--- Ditambahkan
     fun navigateBack()
     fun navigateToSettings()
 }

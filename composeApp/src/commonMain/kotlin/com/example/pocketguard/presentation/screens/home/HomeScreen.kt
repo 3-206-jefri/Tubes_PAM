@@ -50,8 +50,6 @@ fun HomeScreen(
     // ✅ DIPERBAIKI: onNavigateToAdd sekarang menerima type & category
     onNavigateToAdd: (type: String?, category: String?) -> Unit,
     onNavigateToDetail: (Long) -> Unit,
-    onNavigateToAI: () -> Unit,
-    onNavigateToSettings: () -> Unit,
     viewModel: HomeViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -130,12 +128,7 @@ fun HomeScreen(
                             onDismiss = { showSortMenu = false }
                         )
                     }
-                    IconButton(onClick = onNavigateToAI) {
-                        Icon(Icons.Outlined.AutoAwesome, contentDescription = "AI Analyzer")
-                    }
-                    IconButton(onClick = onNavigateToSettings) {
-                        Icon(Icons.Outlined.Settings, contentDescription = "Pengaturan")
-                    }
+
                 }
             )
         },

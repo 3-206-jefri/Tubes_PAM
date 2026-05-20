@@ -11,12 +11,14 @@ import com.example.pocketguard.data.repository.AIRepositoryImpl
 import com.example.pocketguard.data.repository.TransactionRepositoryImpl
 import com.example.pocketguard.domain.repository.AIRepository
 import com.example.pocketguard.domain.repository.TransactionRepository
-import com.example.pocketguard.domain.usecase.* // Import Use Cases
+import com.example.pocketguard.domain.usecase.* // Import Semua Use Cases
 import com.example.pocketguard.presentation.screens.add_transaction.AddTransactionViewModel
 import com.example.pocketguard.presentation.screens.ai.AIAssistantViewModel
 import com.example.pocketguard.presentation.screens.detail.TransactionDetailViewModel
 import com.example.pocketguard.presentation.screens.home.HomeViewModel
 import com.example.pocketguard.presentation.screens.settings.SettingsViewModel
+import com.example.pocketguard.presentation.screens.analytics.AnalyticsViewModel // 👈 INI IMPORT YANG HILANG!
+
 import org.koin.core.context.startKoin
 import org.koin.core.module.Module
 import org.koin.core.module.dsl.singleOf
@@ -49,7 +51,7 @@ val repositoryModule = module {
     singleOf(::AIRepositoryImpl) bind AIRepository::class
 }
 
-// ==================== USE CASE MODULE (Daftarkan di Sini) ====================
+// ==================== USE CASE MODULE ====================
 val useCaseModule = module {
     singleOf(::GetAllTransactionsUseCase)
     singleOf(::SaveTransactionUseCase)
@@ -61,9 +63,10 @@ val useCaseModule = module {
 val viewModelModule = module {
     viewModelOf(::HomeViewModel)
     viewModelOf(::AIAssistantViewModel)
-    viewModelOf(::AddTransactionViewModel)    // Tambahkan ini
-    viewModelOf(::TransactionDetailViewModel) // Tambahkan ini
+    viewModelOf(::AddTransactionViewModel)
+    viewModelOf(::TransactionDetailViewModel)
     viewModelOf(::SettingsViewModel)
+    viewModelOf(::AnalyticsViewModel) // 👈 Sekarang sudah aman!
 }
 
 val sharedModules = listOf(
