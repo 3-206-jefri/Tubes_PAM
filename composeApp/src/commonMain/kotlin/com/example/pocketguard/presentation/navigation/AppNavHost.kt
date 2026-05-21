@@ -23,6 +23,18 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.runtime.setValue
 import com.example.pocketguard.presentation.screens.add_transaction.AddTransactionScreen
 import com.example.pocketguard.presentation.screens.ai.AIAssistantScreen
 import com.example.pocketguard.presentation.screens.detail.TransactionDetailScreen
@@ -87,13 +99,103 @@ fun AppNavHost(
             val showBottomBar = bottomNavItems.any { it.isSelected(currentDestination) }
 
             if (showBottomBar) {
-                NavigationBar {
+                NavigationBar(
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                        .shadow(
+                            elevation = 18.dp,
+                            shape = RoundedCornerShape(28.dp),
+                            ambientColor = Color(0xFF81C784).copy(alpha = 0.18f)
+                        )
+                        .clip(RoundedCornerShape(28.dp)),
+
+                    containerColor = Color(0xFFF4F8F4),
+                    tonalElevation = 0.dp
+                ) {
+
                     bottomNavItems.forEach { item ->
+
                         NavigationBarItem(
                             selected = item.isSelected(currentDestination),
-                            onClick = item.onClick, // Pemanggilan sangat aman
-                            label = { Text(text = item.label, fontSize = 11.sp) },
-                            icon = { Icon(imageVector = item.icon, contentDescription = item.label) }
+
+                            onClick = item.onClick,
+
+                            colors = NavigationBarItemDefaults.colors(
+                                indicatorColor = Color.Transparent
+                            ),
+
+                            label = {
+                                Text(
+                                    text = item.label,
+                                    fontSize = 10.sp,
+                                    fontWeight =
+                                        if (item.isSelected(currentDestination))
+                                            FontWeight.Bold
+                                        else
+                                            FontWeight.Medium,
+
+                                    color =
+                                        if (item.isSelected(currentDestination))
+                                            Color(0xFF1B5E20)
+                                        else
+                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            },
+
+                            icon = {
+
+                                val selected = item.isSelected(currentDestination)
+
+                                val isAddButton = item.label == "Add"
+
+                                val iconSize by animateDpAsState(
+                                    targetValue =
+                                        if (selected) 28.dp
+                                        else 22.dp,
+                                    label = ""
+                                )
+
+                                Box(
+                                    modifier = Modifier
+                                        .clip(CircleShape)
+                                        .background(
+                                            when {
+                                                isAddButton ->
+                                                    Color(0xFF2E7D32)
+
+                                                selected ->
+                                                    Color(0xFF81C784).copy(alpha = 0.16f)
+
+                                                else ->
+                                                    Color.Transparent
+                                            }
+                                        )
+                                        .padding(
+                                            if (isAddButton) 10.dp
+                                            else 8.dp
+                                        )
+                                ) {
+
+                                    Icon(
+                                        imageVector = item.icon,
+                                        contentDescription = item.label,
+
+                                        modifier = Modifier.size(iconSize),
+
+                                        tint =
+                                            when {
+                                                isAddButton ->
+                                                    Color.White
+
+                                                selected ->
+                                                    Color(0xFF1B5E20)
+
+                                                else ->
+                                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                            }
+                                    )
+                                }
+                            }
                         )
                     }
                 }
