@@ -37,6 +37,7 @@ import com.example.pocketguard.presentation.components.LoadingIndicator
 import com.example.pocketguard.presentation.components.TransactionCard
 import org.koin.compose.viewmodel.koinViewModel
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.shadow
 
 // Warna tema hijau PocketGuard
 private val GreenDark = Color(0xFF1B5E20)
@@ -89,6 +90,9 @@ fun HomeScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                    scrolledContainerColor = Color.Transparent),
                 title = {
                     if (showSearch) {
                         SearchField(
@@ -416,7 +420,9 @@ private fun CategoryQuickButton(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 18.dp
+        )
     ) {
         Column(
             modifier = Modifier
@@ -454,21 +460,43 @@ private fun SummarySection(transactions: List<Transaction>) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(20.dp))
+
+                .shadow(
+                    elevation = 24.dp,
+                    shape = RoundedCornerShape(30.dp),
+                    ambientColor = Color(0xFF4CAF50).copy(alpha = 0.28f)
+                )
+
+                .clip(RoundedCornerShape(30.dp))
+
                 .background(
                     Brush.linearGradient(
-                        colors = listOf(GreenDark, GreenLight)
+                        colors = listOf(
+                            Color(0xFF1B5E20),
+                            Color(0xFF2E7D32),
+                            Color(0xFF4CAF50)
+                        )
                     )
                 )
-                .padding(horizontal = 24.dp, vertical = 20.dp)
+
+                .padding(horizontal = 24.dp, vertical = 24.dp)
         ) {
+            Box(
+                modifier = Modifier
+                    .size(180.dp)
+                    .offset(x = 140.dp, y = 70.dp)
+                    .clip(CircleShape)
+                    .background(
+                        Color.White.copy(alpha = 0.06f)
+                    )
+            )
             Column {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         imageVector = Icons.Outlined.AccountBalanceWallet,
                         contentDescription = null,
                         tint = Color.White.copy(alpha = 0.8f),
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
@@ -480,17 +508,27 @@ private fun SummarySection(transactions: List<Transaction>) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "Rp ${formatAmount(totalBalance)}",
-                    style = MaterialTheme.typography.headlineMedium,
+                    style = MaterialTheme.typography.displaySmall,
                     fontWeight = FontWeight.Bold,
                     color = Color.White
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = "Diperbarui barusan",
+                    text = "Diperbarui baru saja",
                     style = MaterialTheme.typography.labelSmall,
                     color = Color.White.copy(alpha = 0.6f)
                 )
             }
+            Icon(
+                imageVector = Icons.Outlined.AccountBalanceWallet,
+                contentDescription = null,
+                tint = Color.White.copy(alpha = 0.08f),
+
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(20.dp)
+                    .size(110.dp)
+            )
         }
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -502,12 +540,24 @@ private fun SummarySection(transactions: List<Transaction>) {
         ) {
             // Card Pemasukan
             Card(
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier
+                    .weight(1f)
+
+                    .shadow(
+                        elevation = 8.dp,
+                        shape = RoundedCornerShape(20.dp),
+                        ambientColor = Color(0xFF81C784).copy(alpha = 0.08f)
+                    ),
+
+                shape = RoundedCornerShape(20.dp),
+
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
+                    containerColor = Color.White.copy(alpha = 0.72f)
                 ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+
+                elevation = CardDefaults.cardElevation(
+                    defaultElevation = 0.dp
+                )
             ) {
                 Row(
                     modifier = Modifier.padding(14.dp),
@@ -546,12 +596,24 @@ private fun SummarySection(transactions: List<Transaction>) {
 
             // Card Pengeluaran
             Card(
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier
+                    .weight(1f)
+
+                    .shadow(
+                        elevation = 8.dp,
+                        shape = RoundedCornerShape(20.dp),
+                        ambientColor = Color(0xFF81C784).copy(alpha = 0.08f)
+                    ),
+
+                shape = RoundedCornerShape(20.dp),
+
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
+                    containerColor = Color.White.copy(alpha = 0.72f)
                 ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+
+                elevation = CardDefaults.cardElevation(
+                    defaultElevation = 0.dp
+                )
             ) {
                 Row(
                     modifier = Modifier.padding(14.dp),

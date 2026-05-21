@@ -95,6 +95,7 @@ fun AppNavHost(
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
+        containerColor = Color.Transparent,
         bottomBar = {
             val showBottomBar = bottomNavItems.any { it.isSelected(currentDestination) }
 
@@ -103,13 +104,13 @@ fun AppNavHost(
                     modifier = Modifier
                         .padding(horizontal = 16.dp, vertical = 12.dp)
                         .shadow(
-                            elevation = 18.dp,
+                            elevation = 6.dp,
                             shape = RoundedCornerShape(28.dp),
                             ambientColor = Color(0xFF81C784).copy(alpha = 0.18f)
                         )
                         .clip(RoundedCornerShape(28.dp)),
 
-                    containerColor = Color(0xFFF4F8F4),
+                    containerColor = Color(0xFFF7FBF7).copy(alpha = 0.90f),
                     tonalElevation = 0.dp
                 ) {
 
