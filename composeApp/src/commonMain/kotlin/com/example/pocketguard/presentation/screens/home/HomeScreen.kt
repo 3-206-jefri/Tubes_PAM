@@ -36,6 +36,7 @@ import com.example.pocketguard.presentation.components.ErrorState
 import com.example.pocketguard.presentation.components.LoadingIndicator
 import com.example.pocketguard.presentation.components.TransactionCard
 import org.koin.compose.viewmodel.koinViewModel
+import androidx.compose.foundation.shape.CircleShape
 
 // Warna tema hijau PocketGuard
 private val GreenDark = Color(0xFF1B5E20)
@@ -144,6 +145,28 @@ fun HomeScreen(
             }
         }
     ) { paddingValues ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color(0xFFF8FBF8),
+                            Color(0xFFEAF5EC)
+                        )
+                    )
+                )
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(260.dp)
+                    .offset(x = (-100).dp, y = (-70).dp)
+                    .clip(CircleShape)
+                    .background(
+                        GreenLight.copy(alpha = 0.07f)
+                    )
+            )
+        }
         Column(
             modifier = Modifier
                 .fillMaxSize()
