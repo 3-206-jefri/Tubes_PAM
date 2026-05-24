@@ -22,7 +22,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -47,7 +46,6 @@ private val ExpenseRed = Color(0xFFB71C1C)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    // ✅ DIPERBAIKI: onNavigateToAdd sekarang menerima type & category
     onNavigateToAdd: (type: String?, category: String?) -> Unit,
     onNavigateToDetail: (Long) -> Unit,
     viewModel: HomeViewModel = koinViewModel()
@@ -61,13 +59,25 @@ fun HomeScreen(
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    // Hitung summary dari semua transaksi (tidak terpengaruh filter)
+    // Data transaksi untuk Summary Section (otomatis terfilter per bulan oleh ViewModel)
     val allTransactions = when (val state = uiState) {
         is HomeUiState.Success -> state.transactions
         else -> emptyList()
     }
 
-    // ===== BOTTOM SHEET QUICK-ADD =====
+    // Ekstrak data bulan dari state
+    val availableMonths = when (val state = uiState) {
+        is HomeUiState.Success -> state.availableMonths
+        is HomeUiState.Empty -> state.availableMonths
+        else -> emptyList()
+    }
+
+    val selectedMonth = when (val state = uiState) {
+        is HomeUiState.Success -> state.selectedMonth
+        is HomeUiState.Empty -> state.selectedMonth
+        else -> null
+    }
+
     if (showAddBottomSheet) {
         ModalBottomSheet(
             onDismissRequest = { showAddBottomSheet = false },
@@ -103,11 +113,7 @@ fun HomeScreen(
                             }
                         )
                     } else {
-                        Text(
-                            "PocketGuard",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 20.sp
-                        )
+                        Text("PocketGuard", fontWeight = FontWeight.Bold, fontSize = 20.sp)
                     }
                 },
                 actions = {
@@ -128,13 +134,11 @@ fun HomeScreen(
                             onDismiss = { showSortMenu = false }
                         )
                     }
-
                 }
             )
         },
         floatingActionButton = {
             FloatingActionButton(
-                // ✅ FAB sekarang membuka bottom sheet
                 onClick = { showAddBottomSheet = true },
                 containerColor = GreenMid,
                 contentColor = Color.White,
@@ -152,14 +156,13 @@ fun HomeScreen(
             // ===== SUMMARY CARD =====
             SummarySection(transactions = allTransactions)
 
-            // ===== FILTER KATEGORI =====
-            CategoryFilterRow(
-                selectedCategory = when (val state = uiState) {
-                    is HomeUiState.Success -> state.category
-                    is HomeUiState.Empty -> state.category
-                    else -> null
-                },
-                onCategorySelected = viewModel::onCategorySelected
+            // ===== FILTER BULAN DINAMIS =====
+            MonthFilterRow(
+                availableMonths = availableMonths,
+                selectedMonth = selectedMonth,
+                onMonthSelected = { bulan ->
+                    viewModel.onMonthSelected(bulan) // Pemanggilan eksplisit
+                }
             )
 
             // ===== LABEL RIWAYAT =====
@@ -191,12 +194,12 @@ fun HomeScreen(
 
                 is HomeUiState.Empty -> {
                     EmptyState(
-                        title = if (state.query.isNotBlank() || state.category != null)
+                        title = if (state.query.isNotBlank() || state.selectedMonth != null)
                             "Tidak Ditemukan"
                         else
                             "Belum Ada Transaksi",
-                        message = if (state.query.isNotBlank() || state.category != null)
-                            "Coba ubah kata kunci atau filter"
+                        message = if (state.query.isNotBlank() || state.selectedMonth != null)
+                            "Coba ubah kata kunci atau filter bulan"
                         else
                             "Mulai catat keuanganmu sekarang",
                         icon = {
@@ -221,18 +224,43 @@ fun HomeScreen(
     }
 }
 
+// 🛠️ KOMPONEN FILTER BERDASARKAN BULAN
+@Composable
+private fun MonthFilterRow(
+    availableMonths: List<String>,
+    selectedMonth: String?,
+    onMonthSelected: (String?) -> Unit
+) {
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        item {
+            FilterChip(
+                selected = selectedMonth == null,
+                onClick = { onMonthSelected(null) },
+                label = { Text("Semua Waktu") }
+            )
+        }
+        items(availableMonths) { month ->
+            FilterChip(
+                selected = selectedMonth == month,
+                onClick = { onMonthSelected(if (selectedMonth == month) null else month) },
+                label = { Text(month) }
+            )
+        }
+    }
+}
+
 // ===== BOTTOM SHEET QUICK-ADD =====
 @Composable
 private fun AddTransactionBottomSheet(
     onNavigateToAdd: (type: String?, category: String?) -> Unit,
     onDismiss: () -> Unit
 ) {
-    // State untuk type yang dipilih di bottom sheet (default EXPENSE)
     var selectedType by remember { mutableStateOf(TransactionType.EXPENSE) }
-
     val isExpense = selectedType == TransactionType.EXPENSE
     val accentColor = if (isExpense) ExpenseRed else IncomeGreen
-    val accentColorLight = if (isExpense) Color(0xFFE53935) else GreenLight
 
     Column(
         modifier = Modifier
@@ -240,7 +268,6 @@ private fun AddTransactionBottomSheet(
             .padding(horizontal = 20.dp)
             .padding(bottom = 32.dp)
     ) {
-        // Handle bar & header
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -258,7 +285,6 @@ private fun AddTransactionBottomSheet(
 
         Spacer(modifier = Modifier.height(4.dp))
 
-        // Toggle Pengeluaran / Pemasukan
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -295,7 +321,6 @@ private fun AddTransactionBottomSheet(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // Label pilih kategori
         Text(
             text = "Pilih Kategori",
             style = MaterialTheme.typography.titleSmall,
@@ -305,7 +330,6 @@ private fun AddTransactionBottomSheet(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Grid kategori — pakai data yang sama persis dengan AddTransactionScreen
         val categoryEmojis = mapOf(
             TransactionCategory.FOOD to "🍜",
             TransactionCategory.TRANSPORT to "🚗",
@@ -322,18 +346,15 @@ private fun AddTransactionBottomSheet(
             TransactionCategory.OTHER to "Lainnya"
         )
 
-        // Tampilkan kategori dalam grid 3 kolom + tombol "Isi Manual" di akhir
-        // Tampilkan kategori dalam grid 3 kolom + tombol "Isi Manual" di akhir
-        // ✅ GANTI DENGAN LOGIKA FILTERING INI
         val categories = if (selectedType == TransactionType.INCOME) {
-            listOf(TransactionCategory.SALARY) // Pemasukan HANYA menampilkan Gaji
+            listOf(TransactionCategory.SALARY)
         } else {
             listOf(
                 TransactionCategory.FOOD,
                 TransactionCategory.TRANSPORT,
                 TransactionCategory.BILLS,
                 TransactionCategory.OTHER
-            ) // Pengeluaran menampilkan selain Gaji
+            )
         }
         val chunked = categories.chunked(3)
 
@@ -347,13 +368,11 @@ private fun AddTransactionBottomSheet(
                         modifier = Modifier.weight(1f),
                         emoji = categoryEmojis[category] ?: "📦",
                         label = categoryLabels[category] ?: category.name,
-                        accentColor = accentColor,
                         onClick = {
                             onNavigateToAdd(selectedType.name, category.name)
                         }
                     )
                 }
-                // Isi sisa kolom jika < 3 item di baris terakhir
                 repeat(3 - rowItems.size) {
                     Spacer(modifier = Modifier.weight(1f))
                 }
@@ -363,27 +382,16 @@ private fun AddTransactionBottomSheet(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Tombol isi manual (tanpa pra-pilih kategori)
         OutlinedButton(
             onClick = { onNavigateToAdd(selectedType.name, null) },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.outlinedButtonColors(
-                contentColor = accentColor
-            ),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = accentColor),
             border = androidx.compose.foundation.BorderStroke(1.dp, accentColor.copy(alpha = 0.5f))
         ) {
-            Icon(
-                imageVector = Icons.Outlined.Edit,
-                contentDescription = null,
-                modifier = Modifier.size(16.dp)
-            )
+            Icon(Icons.Outlined.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
             Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = "Isi Detail Manual",
-                fontWeight = FontWeight.Medium,
-                fontSize = 14.sp
-            )
+            Text("Isi Detail Manual", fontWeight = FontWeight.Medium, fontSize = 14.sp)
         }
     }
 }
@@ -393,7 +401,7 @@ private fun CategoryQuickButton(
     modifier: Modifier = Modifier,
     emoji: String,
     label: String,
-    accentColor: Color,
+
     onClick: () -> Unit
 ) {
     Card(
@@ -427,27 +435,16 @@ private fun CategoryQuickButton(
 // ===== KOMPONEN SUMMARY SECTION =====
 @Composable
 private fun SummarySection(transactions: List<Transaction>) {
-    val totalIncome = transactions
-        .filter { it.type == TransactionType.INCOME }
-        .sumOf { it.amount }
-
-    val totalExpense = transactions
-        .filter { it.type == TransactionType.EXPENSE }
-        .sumOf { it.amount }
-
+    val totalIncome = transactions.filter { it.type == TransactionType.INCOME }.sumOf { it.amount }
+    val totalExpense = transactions.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount }
     val totalBalance = totalIncome - totalExpense
 
     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-        // Card Total Saldo dengan gradient
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(20.dp))
-                .background(
-                    Brush.linearGradient(
-                        colors = listOf(GreenDark, GreenLight)
-                    )
-                )
+                .background(Brush.linearGradient(colors = listOf(GreenDark, GreenLight)))
                 .padding(horizontal = 24.dp, vertical = 20.dp)
         ) {
             Column {
@@ -474,7 +471,7 @@ private fun SummarySection(transactions: List<Transaction>) {
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = "Diperbarui barusan",
+                    text = "Berdasarkan waktu yang dipilih",
                     style = MaterialTheme.typography.labelSmall,
                     color = Color.White.copy(alpha = 0.6f)
                 )
@@ -483,18 +480,14 @@ private fun SummarySection(transactions: List<Transaction>) {
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Row Pemasukan & Pengeluaran
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Card Pemasukan
             Card(
                 modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
-                ),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)),
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
                 Row(
@@ -508,37 +501,20 @@ private fun SummarySection(transactions: List<Transaction>) {
                             .background(IncomeGreen.copy(alpha = 0.12f)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            imageVector = Icons.Outlined.TrendingUp,
-                            contentDescription = null,
-                            tint = IncomeGreen,
-                            modifier = Modifier.size(20.dp)
-                        )
+                        Icon(Icons.Outlined.TrendingUp, contentDescription = null, tint = IncomeGreen, modifier = Modifier.size(20.dp))
                     }
                     Spacer(modifier = Modifier.width(10.dp))
                     Column {
-                        Text(
-                            text = "Pemasukan",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = "+${formatAmount(totalIncome)}",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = IncomeGreen
-                        )
+                        Text("Pemasukan", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("+${formatAmount(totalIncome)}", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = IncomeGreen)
                     }
                 }
             }
 
-            // Card Pengeluaran
             Card(
                 modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
-                ),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)),
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
                 Row(
@@ -552,26 +528,12 @@ private fun SummarySection(transactions: List<Transaction>) {
                             .background(ExpenseRed.copy(alpha = 0.10f)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            imageVector = Icons.Outlined.TrendingDown,
-                            contentDescription = null,
-                            tint = ExpenseRed,
-                            modifier = Modifier.size(20.dp)
-                        )
+                        Icon(Icons.Outlined.TrendingDown, contentDescription = null, tint = ExpenseRed, modifier = Modifier.size(20.dp))
                     }
                     Spacer(modifier = Modifier.width(10.dp))
                     Column {
-                        Text(
-                            text = "Pengeluaran",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = "-${formatAmount(totalExpense)}",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = ExpenseRed
-                        )
+                        Text("Pengeluaran", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("-${formatAmount(totalExpense)}", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = ExpenseRed)
                     }
                 }
             }
@@ -597,34 +559,23 @@ private fun formatAmount(amount: Double): String {
 }
 
 @Composable
-private fun SearchField(
-    query: String,
-    onQueryChange: (String) -> Unit,
-    onClear: () -> Unit
-) {
+private fun SearchField(query: String, onQueryChange: (String) -> Unit, onClear: () -> Unit) {
     OutlinedTextField(
         value = query,
         onValueChange = onQueryChange,
-        placeholder = { Text("Cari deskripsi transaksi...") },
+        placeholder = { Text("Cari deskripsi...") },
         singleLine = true,
         modifier = Modifier.fillMaxWidth(),
         trailingIcon = {
             AnimatedVisibility(visible = query.isNotBlank(), enter = fadeIn(), exit = fadeOut()) {
-                IconButton(onClick = onClear) {
-                    Icon(Icons.Default.Close, contentDescription = "Hapus")
-                }
+                IconButton(onClick = onClear) { Icon(Icons.Default.Close, contentDescription = "Hapus") }
             }
         }
     )
 }
 
 @Composable
-private fun SortDropdownMenu(
-    expanded: Boolean,
-    currentSortBy: TransactionSortBy,
-    onSortSelected: (TransactionSortBy) -> Unit,
-    onDismiss: () -> Unit
-) {
+private fun SortDropdownMenu(expanded: Boolean, currentSortBy: TransactionSortBy, onSortSelected: (TransactionSortBy) -> Unit, onDismiss: () -> Unit) {
     DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
         TransactionSortBy.entries.forEach { sortBy ->
             DropdownMenuItem(
@@ -644,44 +595,9 @@ private fun SortDropdownMenu(
 }
 
 @Composable
-private fun CategoryFilterRow(
-    selectedCategory: TransactionCategory?,
-    onCategorySelected: (TransactionCategory?) -> Unit
-) {
-    LazyRow(
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        item {
-            FilterChip(
-                selected = selectedCategory == null,
-                onClick = { onCategorySelected(null) },
-                label = { Text("Semua") }
-            )
-        }
-        items(TransactionCategory.entries) { category ->
-            FilterChip(
-                selected = selectedCategory == category,
-                onClick = { onCategorySelected(if (selectedCategory == category) null else category) },
-                label = { Text(category.displayName) }
-            )
-        }
-    }
-}
-
-@Composable
-private fun TransactionsList(
-    transactions: List<Transaction>,
-    onTransactionClick: (Long) -> Unit,
-    onDeleteClick: (Long) -> Unit
-) {
+private fun TransactionsList(transactions: List<Transaction>, onTransactionClick: (Long) -> Unit, onDeleteClick: (Long) -> Unit) {
     LazyColumn(
-        contentPadding = PaddingValues(
-            start = 16.dp,
-            end = 16.dp,
-            top = 4.dp,
-            bottom = 80.dp
-        ),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 80.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         items(items = transactions, key = { it.id }) { transaction ->

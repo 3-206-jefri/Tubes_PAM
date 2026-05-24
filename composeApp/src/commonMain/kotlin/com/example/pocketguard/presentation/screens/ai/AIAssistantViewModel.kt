@@ -3,13 +3,17 @@ package com.example.pocketguard.presentation.screens.ai
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.pocketguard.domain.repository.AIRepository
+import com.example.pocketguard.domain.repository.TransactionRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 
-// 1. Deklarasi model pesan dipindahkan ke sini
 data class ChatMessage(
     val text: String,
     val isUser: Boolean
@@ -21,8 +25,15 @@ data class AIAssistantUiState(
     val error: String? = null
 )
 
+private fun formatTimestamp(timestamp: Long): String {
+    val instant = Instant.fromEpochMilliseconds(timestamp)
+    val dateTime = instant.toLocalDateTime(TimeZone.currentSystemDefault())
+    return "${dateTime.dayOfMonth}/${dateTime.monthNumber}/${dateTime.year}"
+}
+
 class AIAssistantViewModel(
-    private val aiRepository: AIRepository
+    private val aiRepository: AIRepository,
+    private val transactionRepository: TransactionRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AIAssistantUiState())
@@ -31,27 +42,35 @@ class AIAssistantViewModel(
     fun sendMessage(prompt: String) {
         if (prompt.isBlank()) return
 
-        // 1. Masukkan pesan dari User ke layar dan aktifkan efek Loading
         val currentMessages = _uiState.value.messages.toMutableList()
         currentMessages.add(ChatMessage(text = prompt, isUser = true))
 
         _uiState.update { it.copy(messages = currentMessages, isLoading = true, error = null) }
 
-        // 2. Kirim prompt ke server Gemini AI menggunakan fungsi chat() dari AIRepository
         viewModelScope.launch {
-            val result = aiRepository.chat(prompt)
+            // Mengambil data dan memproses semuanya di dalam blok coroutine yang sama
+            val transactions = transactionRepository.getAllTransactions().first()
+            val transactionSummary = transactions.joinToString(separator = "\n") { transaction ->
+                "- ${formatTimestamp(transaction.createdAt)}: ${transaction.description} (Rp ${transaction.amount}) - Kategori: ${transaction.category.displayName}"
+            }
+
+            val contextPrompt = """
+                Anda adalah asisten keuangan pribadi. Berikut adalah data transaksi pengguna:
+                $transactionSummary
+                
+                Instruksi: Analisis data tersebut untuk menjawab pertanyaan berikut:
+                "$prompt"
+            """.trimIndent()
+
+            val result = aiRepository.chat(contextPrompt)
 
             result.onSuccess { aiResponse ->
-                // 3. Jika berhasil, masukkan balasan AI ke layar
                 val updatedMessages = _uiState.value.messages.toMutableList()
                 updatedMessages.add(ChatMessage(text = aiResponse, isUser = false))
-
                 _uiState.update { it.copy(messages = updatedMessages, isLoading = false) }
             }.onFailure { err ->
-                // 4. Jika gagal, tampilkan pesan error sebagai pesan AI
                 val updatedMessages = _uiState.value.messages.toMutableList()
                 updatedMessages.add(ChatMessage(text = "Maaf, terjadi kesalahan: ${err.message}", isUser = false))
-
                 _uiState.update { it.copy(messages = updatedMessages, isLoading = false, error = err.message) }
             }
         }
