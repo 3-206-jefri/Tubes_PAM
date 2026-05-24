@@ -201,6 +201,18 @@ fun AddTransactionScreen(
                         fontWeight = FontWeight.SemiBold
                     )
 
+                    val availableCategories = if (uiState.type == TransactionType.INCOME) {
+                        listOf(TransactionCategory.SALARY) // Jika pemasukan, HANYA tampilkan Gaji
+                    } else {
+                        // Jika pengeluaran, tampilkan selain Gaji
+                        listOf(
+                            TransactionCategory.FOOD,
+                            TransactionCategory.TRANSPORT,
+                            TransactionCategory.BILLS,
+                            TransactionCategory.OTHER
+                        )
+                    }
+
                     if (initialCategory != null) {
                         // ✅ Dari bottom sheet: tampilkan hanya kategori yang dipilih
                         SelectedCategoryBadge(
@@ -211,6 +223,7 @@ fun AddTransactionScreen(
                         // ✅ Masuk manual: tampilkan semua pilihan kategori
                         CategoryGrid(
                             selectedCategory = uiState.category,
+                            availableCategories = availableCategories,
                             onCategorySelected = viewModel::onCategoryChange,
                             accentColor = accentColor
                         )
@@ -286,6 +299,7 @@ private fun BasicAmountInput(
 @Composable
 private fun CategoryGrid(
     selectedCategory: TransactionCategory,
+    availableCategories: List<TransactionCategory>,
     onCategorySelected: (TransactionCategory) -> Unit,
     accentColor: Color
 ) {
@@ -296,7 +310,7 @@ private fun CategoryGrid(
         TransactionCategory.SALARY to "💵",
         TransactionCategory.OTHER to "📦"
     )
-    val chunked = TransactionCategory.entries.chunked(3)
+    val chunked = availableCategories.chunked(3)
     chunked.forEach { rowItems ->
         Row(
             modifier = Modifier.fillMaxWidth(),

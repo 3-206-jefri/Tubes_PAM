@@ -73,7 +73,20 @@ class AddTransactionViewModel(
     }
 
     fun onTypeChange(type: TransactionType) {
-        _uiState.update { it.copy(type = type) }
+        _uiState.update { state ->
+            // Logika pemisahan kategori
+            val newCategory = if (type == TransactionType.INCOME) {
+                // Jika Pemasukan, paksa kategori menjadi SALARY (Gaji)
+                TransactionCategory.SALARY
+            } else if (state.category == TransactionCategory.SALARY) {
+                // Jika pindah ke Pengeluaran tapi kategori masih Gaji, ubah ke OTHER/FOOD agar tidak error
+                TransactionCategory.OTHER
+            } else {
+                state.category
+            }
+
+            state.copy(type = type, category = newCategory)
+        }
     }
 
     fun saveTransaction() {

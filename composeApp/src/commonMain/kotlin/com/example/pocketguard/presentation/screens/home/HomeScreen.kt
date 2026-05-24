@@ -323,7 +323,18 @@ private fun AddTransactionBottomSheet(
         )
 
         // Tampilkan kategori dalam grid 3 kolom + tombol "Isi Manual" di akhir
-        val categories = TransactionCategory.entries
+        // Tampilkan kategori dalam grid 3 kolom + tombol "Isi Manual" di akhir
+        // ✅ GANTI DENGAN LOGIKA FILTERING INI
+        val categories = if (selectedType == TransactionType.INCOME) {
+            listOf(TransactionCategory.SALARY) // Pemasukan HANYA menampilkan Gaji
+        } else {
+            listOf(
+                TransactionCategory.FOOD,
+                TransactionCategory.TRANSPORT,
+                TransactionCategory.BILLS,
+                TransactionCategory.OTHER
+            ) // Pengeluaran menampilkan selain Gaji
+        }
         val chunked = categories.chunked(3)
 
         chunked.forEach { rowItems ->
