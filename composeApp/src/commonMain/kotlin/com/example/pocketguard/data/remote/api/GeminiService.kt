@@ -20,7 +20,7 @@ class GeminiService(private val client: HttpClient) {
     
     companion object {
         private const val BASE_URL = "https://generativelanguage.googleapis.com/v1beta"
-        private const val MODEL = "gemini-2.0-flash"
+        private const val MODEL = "gemini-3.5-flash"
     }
     
     suspend fun generateContent(
@@ -58,6 +58,8 @@ class GeminiService(private val client: HttpClient) {
                 maxOutputTokens = 1000
             )
         )
+
+        val url = "$BASE_URL/models/$MODEL:generateContent"
         
         val response: GeminiResponse = client.post("$BASE_URL/models/$MODEL:generateContent") {
             contentType(ContentType.Application.Json)
