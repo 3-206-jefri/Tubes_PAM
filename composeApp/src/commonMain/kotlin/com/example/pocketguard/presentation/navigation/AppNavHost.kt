@@ -1,9 +1,13 @@
 package com.example.pocketguard.presentation.navigation
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AddCircle
+import androidx.compose.material.icons.filled.Add // <-- Diganti menjadi Add biasa
 import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Home
@@ -11,7 +15,9 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -30,7 +36,6 @@ import com.example.pocketguard.presentation.screens.home.HomeScreen
 import com.example.pocketguard.presentation.screens.settings.SettingsScreen
 import com.example.pocketguard.presentation.screens.analytics.AnalyticsScreen
 
-// 1. Data class diubah agar langsung menampung aksi (onClick) dan validasi (isSelected)
 data class BottomNavItem(
     val label: String,
     val icon: ImageVector,
@@ -47,7 +52,6 @@ fun AppNavHost(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
 
-    // 2. Deklarasi Menu Bawah yang Bebas Crash!
     val bottomNavItems = listOf(
         BottomNavItem(
             label = "Home",
@@ -63,9 +67,9 @@ fun AppNavHost(
         ),
         BottomNavItem(
             label = "Add",
-            icon = Icons.Default.AddCircle,
+            icon = Icons.Default.Add, // ✅ Menggunakan ikon Add biasa agar rapi di dalam lingkaran
             isSelected = { it?.hasRoute<Route.AddTransaction>() == true },
-            onClick = { navigationActions.navigateToAddTransaction() } // Mengandalkan default parameter null
+            onClick = { navigationActions.navigateToAddTransaction() }
         ),
         BottomNavItem(
             label = "Grafik",
@@ -87,13 +91,53 @@ fun AppNavHost(
             val showBottomBar = bottomNavItems.any { it.isSelected(currentDestination) }
 
             if (showBottomBar) {
-                NavigationBar {
+                NavigationBar(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 8.dp
+                ) {
                     bottomNavItems.forEach { item ->
+                        val isAddButton = item.label == "Add"
+                        val isSelected = item.isSelected(currentDestination)
+                        val itemLabel: @Composable (() -> Unit) =  {
+                             Text(text = item.label, fontSize = 11.sp) }
+
+
                         NavigationBarItem(
-                            selected = item.isSelected(currentDestination),
-                            onClick = item.onClick, // Pemanggilan sangat aman
-                            label = { Text(text = item.label, fontSize = 11.sp) },
-                            icon = { Icon(imageVector = item.icon, contentDescription = item.label) }
+                            selected = isSelected,
+                            onClick = item.onClick,
+                            label = itemLabel,
+                            icon = {
+                                if (isAddButton) {
+                                    // ✅ Styling khusus tombol Add (Lingkaran Hijau Lebih Besar)
+                                    Box(
+                                        modifier = Modifier
+                                            .size(48.dp)
+                                            .background(
+                                                color = Color(0xFF2E7D32), // Hijau khas PocketGuard
+                                                shape = CircleShape
+                                            ),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = item.icon,
+                                            contentDescription = item.label,
+                                            tint = Color.White,
+                                            modifier = Modifier.size(28.dp)
+                                        )
+                                    }
+                                } else {
+                                    // Styling standar untuk menu lainnya
+                                    Icon(
+                                        imageVector = item.icon,
+                                        contentDescription = item.label
+                                    )
+                                }
+                            },
+                            // ✅ Menghilangkan efek indikator abu-abu bawaan Material 3 khusus di tombol Add
+                            colors = NavigationBarItemDefaults.colors(
+                                indicatorColor = if (isAddButton) Color.Transparent else MaterialTheme.colorScheme.secondaryContainer
+                            ),
+                            alwaysShowLabel = true
                         )
                     }
                 }
@@ -169,7 +213,6 @@ private fun createNavigationActions(navController: NavHostController): Navigatio
             }
         }
 
-        // Menyocokkan dengan 3 argumen di Routes.kt kamu
         override fun navigateToAddTransaction(
             transactionId: Long?,
             transactionType: String?,
