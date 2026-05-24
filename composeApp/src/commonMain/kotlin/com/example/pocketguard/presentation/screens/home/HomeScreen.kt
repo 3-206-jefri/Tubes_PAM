@@ -3,7 +3,8 @@ package com.example.pocketguard.presentation.screens.home
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -13,17 +14,17 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.outlined.AccountBalanceWallet
-import androidx.compose.material.icons.outlined.AutoAwesome
-import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material.icons.outlined.Sort
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.pocketguard.domain.model.Transaction
 import com.example.pocketguard.domain.model.TransactionCategory
@@ -33,17 +34,20 @@ import com.example.pocketguard.presentation.components.EmptyState
 import com.example.pocketguard.presentation.components.ErrorState
 import com.example.pocketguard.presentation.components.LoadingIndicator
 import com.example.pocketguard.presentation.components.TransactionCard
-import com.example.pocketguard.presentation.theme.PgDanger
-import com.example.pocketguard.presentation.theme.PgPrimary
 import org.koin.compose.viewmodel.koinViewModel
+
+// Warna tema hijau PocketGuard
+private val GreenDark = Color(0xFF1B5E20)
+private val GreenMid = Color(0xFF2E7D32)
+private val GreenLight = Color(0xFF43A047)
+private val IncomeGreen = Color(0xFF2E7D32)
+private val ExpenseRed = Color(0xFFB71C1C)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    onNavigateToAdd: () -> Unit,
+    onNavigateToAdd: (type: String?, category: String?) -> Unit,
     onNavigateToDetail: (Long) -> Unit,
-    onNavigateToAI: () -> Unit,
-    onNavigateToSettings: () -> Unit,
     viewModel: HomeViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -51,6 +55,45 @@ fun HomeScreen(
 
     var showSearch by remember { mutableStateOf(false) }
     var showSortMenu by remember { mutableStateOf(false) }
+    var showAddBottomSheet by remember { mutableStateOf(false) }
+
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    // Data transaksi untuk Summary Section (otomatis terfilter per bulan oleh ViewModel)
+    val allTransactions = when (val state = uiState) {
+        is HomeUiState.Success -> state.transactions
+        else -> emptyList()
+    }
+
+    // Ekstrak data bulan dari state
+    val availableMonths = when (val state = uiState) {
+        is HomeUiState.Success -> state.availableMonths
+        is HomeUiState.Empty -> state.availableMonths
+        else -> emptyList()
+    }
+
+    val selectedMonth = when (val state = uiState) {
+        is HomeUiState.Success -> state.selectedMonth
+        is HomeUiState.Empty -> state.selectedMonth
+        else -> null
+    }
+
+    if (showAddBottomSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showAddBottomSheet = false },
+            sheetState = sheetState,
+            containerColor = MaterialTheme.colorScheme.surface,
+            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+        ) {
+            AddTransactionBottomSheet(
+                onNavigateToAdd = { type, category ->
+                    showAddBottomSheet = false
+                    onNavigateToAdd(type, category)
+                },
+                onDismiss = { showAddBottomSheet = false }
+            )
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -70,7 +113,7 @@ fun HomeScreen(
                             }
                         )
                     } else {
-                        Text("PocketGuard", fontWeight = FontWeight.SemiBold)
+                        Text("PocketGuard", fontWeight = FontWeight.Bold, fontSize = 20.sp)
                     }
                 },
                 actions = {
@@ -78,11 +121,9 @@ fun HomeScreen(
                         IconButton(onClick = { showSearch = true }) {
                             Icon(Icons.Default.Search, contentDescription = "Cari")
                         }
-
                         IconButton(onClick = { showSortMenu = true }) {
                             Icon(Icons.Outlined.Sort, contentDescription = "Urutkan")
                         }
-
                         SortDropdownMenu(
                             expanded = showSortMenu,
                             currentSortBy = currentSortBy,
@@ -93,21 +134,15 @@ fun HomeScreen(
                             onDismiss = { showSortMenu = false }
                         )
                     }
-
-                    IconButton(onClick = onNavigateToAI) {
-                        Icon(Icons.Outlined.AutoAwesome, contentDescription = "AI Analyzer")
-                    }
-                    IconButton(onClick = onNavigateToSettings) {
-                        Icon(Icons.Outlined.Settings, contentDescription = "Pengaturan")
-                    }
                 }
             )
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = onNavigateToAdd,
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = Color.White
+                onClick = { showAddBottomSheet = true },
+                containerColor = GreenMid,
+                contentColor = Color.White,
+                shape = RoundedCornerShape(16.dp)
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Tambah Transaksi")
             }
@@ -118,46 +153,34 @@ fun HomeScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Baris Filter Kategori bawaan
-            CategoryFilterRow(
-                selectedCategory = when (val state = uiState) {
-                    is HomeUiState.Success -> state.category
-                    is HomeUiState.Empty -> state.category
-                    else -> null
-                },
-                onCategorySelected = viewModel::onCategorySelected
+            // ===== SUMMARY CARD =====
+            SummarySection(transactions = allTransactions)
+
+            // ===== FILTER BULAN DINAMIS =====
+            MonthFilterRow(
+                availableMonths = availableMonths,
+                selectedMonth = selectedMonth,
+                onMonthSelected = { bulan ->
+                    viewModel.onMonthSelected(bulan) // Pemanggilan eksplisit
+                }
             )
 
-            // Hitung variabel finansial berdasarkan isi State UI secara dinamis
-            val (totalBalance, totalIncome, totalExpense) = remember(uiState) {
-                when (val state = uiState) {
-                    is HomeUiState.Success -> {
-                        val inc = state.transactions.filter { it.type == TransactionType.INCOME }.sumOf { it.amount }
-                        val exp = state.transactions.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount }
-                        Triple(inc - exp, inc, exp)
-                    }
-                    else -> Triple(0.0, 0.0, 0.0)
-                }
+            // ===== LABEL RIWAYAT =====
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Riwayat Transaksi",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
             }
 
-            // Tampilkan komponen visual Dashboard Finansial di bagian atas list
-            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
-                BalanceCard(balance = totalBalance)
-                Spacer(modifier = Modifier.height(8.dp))
-                MiniStatRow(income = totalIncome, expense = totalExpense)
-                Spacer(modifier = Modifier.height(16.dp))
-
-                if (uiState is HomeUiState.Success) {
-                    Text(
-                        text = "Transaksi terbaru",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 4.dp)
-                    )
-                }
-            }
-
-            // Penanganan State Pemuatan Data List
+            // ===== KONTEN UTAMA =====
             when (val state = uiState) {
                 is HomeUiState.Loading -> LoadingIndicator()
 
@@ -171,14 +194,20 @@ fun HomeScreen(
 
                 is HomeUiState.Empty -> {
                     EmptyState(
-                        title = if (state.query.isNotBlank() || state.category != null) "Tidak Ditemukan" else "Belum Ada Transaksi",
-                        message = if (state.query.isNotBlank() || state.category != null) "Coba ubah kata kunci atau filter" else "Mulai catat keuanganmu sekarang",
+                        title = if (state.query.isNotBlank() || state.selectedMonth != null)
+                            "Tidak Ditemukan"
+                        else
+                            "Belum Ada Transaksi",
+                        message = if (state.query.isNotBlank() || state.selectedMonth != null)
+                            "Coba ubah kata kunci atau filter bulan"
+                        else
+                            "Mulai catat keuanganmu sekarang",
                         icon = {
                             Icon(
                                 Icons.Outlined.AccountBalanceWallet,
                                 contentDescription = null,
                                 modifier = Modifier.size(64.dp),
-                                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                                tint = GreenMid.copy(alpha = 0.5f)
                             )
                         }
                     )
@@ -195,131 +224,358 @@ fun HomeScreen(
     }
 }
 
-// ==================== DESIGN SYSTEM COMPONENTS ====================
-
+// 🛠️ KOMPONEN FILTER BERDASARKAN BULAN
 @Composable
-private fun BalanceCard(balance: Double) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = PgPrimary),
-        shape = RoundedCornerShape(14.dp)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = "Total Saldo",
-                style = MaterialTheme.typography.labelMedium,
-                color = Color.White.copy(alpha = 0.75f)
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "Rp ${formatCurrency(balance)}",
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "Diperbarui barusan",
-                style = MaterialTheme.typography.labelSmall,
-                color = Color.White.copy(alpha = 0.6f)
-            )
-        }
-    }
-}
-
-@Composable
-private fun MiniStatRow(income: Double, expense: Double) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
+private fun MonthFilterRow(
+    availableMonths: List<String>,
+    selectedMonth: String?,
+    onMonthSelected: (String?) -> Unit
+) {
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // Kotak Statistik Pemasukan
-        Card(
-            modifier = Modifier.weight(1f),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-            border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant),
-            shape = RoundedCornerShape(10.dp)
+        item {
+            FilterChip(
+                selected = selectedMonth == null,
+                onClick = { onMonthSelected(null) },
+                label = { Text("Semua Waktu") }
+            )
+        }
+        items(availableMonths) { month ->
+            FilterChip(
+                selected = selectedMonth == month,
+                onClick = { onMonthSelected(if (selectedMonth == month) null else month) },
+                label = { Text(month) }
+            )
+        }
+    }
+}
+
+// ===== BOTTOM SHEET QUICK-ADD =====
+@Composable
+private fun AddTransactionBottomSheet(
+    onNavigateToAdd: (type: String?, category: String?) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var selectedType by remember { mutableStateOf(TransactionType.EXPENSE) }
+    val isExpense = selectedType == TransactionType.EXPENSE
+    val accentColor = if (isExpense) ExpenseRed else IncomeGreen
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp)
+            .padding(bottom = 32.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(modifier = Modifier.padding(12.dp)) {
+            Text(
+                text = "Tambah Transaksi",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+            IconButton(onClick = onDismiss) {
+                Icon(Icons.Default.Close, contentDescription = "Tutup")
+            }
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+                .padding(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            TransactionType.entries.forEach { type ->
+                val isSelected = selectedType == type
+                val btnColor = if (type == TransactionType.EXPENSE) ExpenseRed else IncomeGreen
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(9.dp))
+                        .background(
+                            if (isSelected) btnColor.copy(alpha = 0.15f)
+                            else Color.Transparent
+                        )
+                        .clickable { selectedType = type }
+                        .padding(vertical = 12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = if (type == TransactionType.EXPENSE) "💸 Pengeluaran" else "💰 Pemasukan",
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                        color = if (isSelected) btnColor
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 14.sp
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        Text(
+            text = "Pilih Kategori",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        val categoryEmojis = mapOf(
+            TransactionCategory.FOOD to "🍜",
+            TransactionCategory.TRANSPORT to "🚗",
+            TransactionCategory.BILLS to "🏠",
+            TransactionCategory.SALARY to "💵",
+            TransactionCategory.OTHER to "📦"
+        )
+
+        val categoryLabels = mapOf(
+            TransactionCategory.FOOD to "Makanan",
+            TransactionCategory.TRANSPORT to "Transport",
+            TransactionCategory.BILLS to "Tagihan",
+            TransactionCategory.SALARY to "Gaji",
+            TransactionCategory.OTHER to "Lainnya"
+        )
+
+        val categories = if (selectedType == TransactionType.INCOME) {
+            listOf(TransactionCategory.SALARY)
+        } else {
+            listOf(
+                TransactionCategory.FOOD,
+                TransactionCategory.TRANSPORT,
+                TransactionCategory.BILLS,
+                TransactionCategory.OTHER
+            )
+        }
+        val chunked = categories.chunked(3)
+
+        chunked.forEach { rowItems ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                rowItems.forEach { category ->
+                    CategoryQuickButton(
+                        modifier = Modifier.weight(1f),
+                        emoji = categoryEmojis[category] ?: "📦",
+                        label = categoryLabels[category] ?: category.name,
+                        onClick = {
+                            onNavigateToAdd(selectedType.name, category.name)
+                        }
+                    )
+                }
+                repeat(3 - rowItems.size) {
+                    Spacer(modifier = Modifier.weight(1f))
+                }
+            }
+            Spacer(modifier = Modifier.height(10.dp))
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        OutlinedButton(
+            onClick = { onNavigateToAdd(selectedType.name, null) },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = accentColor),
+            border = androidx.compose.foundation.BorderStroke(1.dp, accentColor.copy(alpha = 0.5f))
+        ) {
+            Icon(Icons.Outlined.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Isi Detail Manual", fontWeight = FontWeight.Medium, fontSize = 14.sp)
+        }
+    }
+}
+
+@Composable
+private fun CategoryQuickButton(
+    modifier: Modifier = Modifier,
+    emoji: String,
+    label: String,
+
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = modifier
+            .clip(RoundedCornerShape(14.dp))
+            .clickable { onClick() },
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(text = emoji, fontSize = 28.sp)
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+// ===== KOMPONEN SUMMARY SECTION =====
+@Composable
+private fun SummarySection(transactions: List<Transaction>) {
+    val totalIncome = transactions.filter { it.type == TransactionType.INCOME }.sumOf { it.amount }
+    val totalExpense = transactions.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount }
+    val totalBalance = totalIncome - totalExpense
+
+    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(20.dp))
+                .background(Brush.linearGradient(colors = listOf(GreenDark, GreenLight)))
+                .padding(horizontal = 24.dp, vertical = 20.dp)
+        ) {
+            Column {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Outlined.AccountBalanceWallet,
+                        contentDescription = null,
+                        tint = Color.White.copy(alpha = 0.8f),
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "Total Saldo",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.White.copy(alpha = 0.85f)
+                    )
+                }
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Pemasukan",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                    text = "Rp ${formatAmount(totalBalance)}",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = "+${formatCurrency(income)}",
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = PgPrimary
+                    text = "Berdasarkan waktu yang dipilih",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.White.copy(alpha = 0.6f)
                 )
             }
         }
 
-        // Kotak Statistik Pengeluaran
-        Card(
-            modifier = Modifier.weight(1f),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-            border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant),
-            shape = RoundedCornerShape(10.dp)
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Column(modifier = Modifier.padding(12.dp)) {
-                Text(
-                    text = "Pengeluaran",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = "-${formatCurrency(expense)}",
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = PgDanger
-                )
+            Card(
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(IncomeGreen.copy(alpha = 0.12f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Outlined.TrendingUp, contentDescription = null, tint = IncomeGreen, modifier = Modifier.size(20.dp))
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column {
+                        Text("Pemasukan", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("+${formatAmount(totalIncome)}", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = IncomeGreen)
+                    }
+                }
+            }
+
+            Card(
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(ExpenseRed.copy(alpha = 0.10f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Outlined.TrendingDown, contentDescription = null, tint = ExpenseRed, modifier = Modifier.size(20.dp))
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column {
+                        Text("Pengeluaran", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("-${formatAmount(totalExpense)}", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = ExpenseRed)
+                    }
+                }
             }
         }
     }
 }
 
-// Fungsi pembantu murni (KMP compatible) untuk memformat ribuan menggunakan titik (e.g. 1.000.000)
-private fun formatCurrency(amount: Double): String {
-    val isNegative = amount < 0
-    val absAmount = if (isNegative) -amount else amount
-    val str = absAmount.toLong().toString().reversed().chunked(3).joinToString(".").reversed()
-    return if (isNegative) "-$str" else str
+private fun formatAmount(amount: Double): String {
+    val long = amount.toLong()
+    return when {
+        long >= 1_000_000_000 -> "${long / 1_000_000_000}M"
+        long >= 1_000_000 -> "${long / 1_000_000}Jt"
+        else -> {
+            val str = long.toString()
+            val result = StringBuilder()
+            str.reversed().forEachIndexed { index, c ->
+                if (index > 0 && index % 3 == 0) result.append('.')
+                result.append(c)
+            }
+            result.reverse().toString()
+        }
+    }
 }
 
-// ==================== COMPONENT BAWAAN ====================
-
 @Composable
-private fun SearchField(
-    query: String,
-    onQueryChange: (String) -> Unit,
-    onClear: () -> Unit
-) {
+private fun SearchField(query: String, onQueryChange: (String) -> Unit, onClear: () -> Unit) {
     OutlinedTextField(
         value = query,
         onValueChange = onQueryChange,
-        placeholder = { Text("Cari deskripsi transaksi...") },
+        placeholder = { Text("Cari deskripsi...") },
         singleLine = true,
         modifier = Modifier.fillMaxWidth(),
         trailingIcon = {
             AnimatedVisibility(visible = query.isNotBlank(), enter = fadeIn(), exit = fadeOut()) {
-                IconButton(onClick = onClear) {
-                    Icon(Icons.Default.Close, contentDescription = "Hapus")
-                }
+                IconButton(onClick = onClear) { Icon(Icons.Default.Close, contentDescription = "Hapus") }
             }
         }
     )
 }
 
 @Composable
-private fun SortDropdownMenu(
-    expanded: Boolean,
-    currentSortBy: TransactionSortBy,
-    onSortSelected: (TransactionSortBy) -> Unit,
-    onDismiss: () -> Unit
-) {
+private fun SortDropdownMenu(expanded: Boolean, currentSortBy: TransactionSortBy, onSortSelected: (TransactionSortBy) -> Unit, onDismiss: () -> Unit) {
     DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
         TransactionSortBy.entries.forEach { sortBy ->
             DropdownMenuItem(
@@ -339,40 +595,10 @@ private fun SortDropdownMenu(
 }
 
 @Composable
-private fun CategoryFilterRow(
-    selectedCategory: TransactionCategory?,
-    onCategorySelected: (TransactionCategory?) -> Unit
-) {
-    LazyRow(
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        item {
-            FilterChip(
-                selected = selectedCategory == null,
-                onClick = { onCategorySelected(null) },
-                label = { Text("Semua") }
-            )
-        }
-        items(TransactionCategory.entries) { category ->
-            FilterChip(
-                selected = selectedCategory == category,
-                onClick = { onCategorySelected(if (selectedCategory == category) null else category) },
-                label = { Text(category.displayName) }
-            )
-        }
-    }
-}
-
-@Composable
-private fun TransactionsList(
-    transactions: List<Transaction>,
-    onTransactionClick: (Long) -> Unit,
-    onDeleteClick: (Long) -> Unit
-) {
+private fun TransactionsList(transactions: List<Transaction>, onTransactionClick: (Long) -> Unit, onDeleteClick: (Long) -> Unit) {
     LazyColumn(
-        contentPadding = PaddingValues(bottom = 16.dp, start = 16.dp, end = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 80.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         items(items = transactions, key = { it.id }) { transaction ->
             TransactionCard(

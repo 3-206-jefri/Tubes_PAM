@@ -1,12 +1,12 @@
 package com.example.pocketguard.presentation.screens.add_transaction
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -14,8 +14,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -25,27 +26,43 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.pocketguard.domain.model.TransactionCategory
 import com.example.pocketguard.domain.model.TransactionType
 import com.example.pocketguard.presentation.components.LoadingIndicator
-import com.example.pocketguard.presentation.theme.PgDanger
-import com.example.pocketguard.presentation.theme.PgPrimary
-import com.example.pocketguard.presentation.theme.PgPrimaryLight
 import org.koin.compose.viewmodel.koinViewModel
+import androidx.compose.material.icons.outlined.CheckCircle
+
+private val GreenDark = Color(0xFF1B5E20)
+private val GreenLight = Color(0xFF43A047)
+private val IncomeGreen = Color(0xFF2E7D32)
+private val ExpenseRed = Color(0xFFB71C1C)
+private val ExpenseRedLight = Color(0xFFE53935)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddTransactionScreen(
     transactionId: Long?,
+    initialType: String? = null,
+    initialCategory: String? = null,
     onNavigateBack: () -> Unit,
     viewModel: AddTransactionViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Memuat data secara otomatis jika dalam mode edit transaksi
+    // Set initial type & category dari bottom sheet
+    LaunchedEffect(initialType, initialCategory) {
+        initialType?.let { typeStr ->
+            val type = runCatching { TransactionType.valueOf(typeStr) }.getOrNull()
+            type?.let { viewModel.onTypeChange(it) }
+        }
+        initialCategory?.let { catStr ->
+            val category = runCatching { TransactionCategory.valueOf(catStr) }.getOrNull()
+            category?.let { viewModel.onCategoryChange(it) }
+        }
+    }
+
     LaunchedEffect(transactionId) {
         transactionId?.let { viewModel.loadTransaction(it) }
     }
 
-    // Mendengarkan event penyimpanan dari channel arsitektur Anda
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
             when (event) {
@@ -55,15 +72,18 @@ fun AddTransactionScreen(
         }
     }
 
+    val isExpense = uiState.type == TransactionType.EXPENSE
+    val accentColor = if (isExpense) ExpenseRed else IncomeGreen
+    val accentColorLight = if (isExpense) ExpenseRedLight else GreenLight
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
                     Text(
-                        text = if (uiState.isEditMode) "Edit Transaksi" else "Transaksi Baru",
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 18.sp
+                        if (uiState.isEditMode) "Edit Transaksi" else "Transaksi Baru",
+                        fontWeight = FontWeight.Bold
                     )
                 },
                 navigationIcon = {
@@ -81,233 +101,306 @@ fun AddTransactionScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
-                    .padding(horizontal = 18.dp, vertical = 8.dp)
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                    .verticalScroll(rememberScrollState())
             ) {
-
-                // 1. TYPE TOGGLE - Terhubung langsung ke viewModel::onTypeChange
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    val isExpense = uiState.type == TransactionType.EXPENSE
-                    val isIncome = uiState.type == TransactionType.INCOME
-
-                    // Pengeluaran Chip Button
-                    Card(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clickable { viewModel.onTypeChange(TransactionType.EXPENSE) },
-                        colors = CardDefaults.cardColors(
-                            containerColor = if (isExpense) Color(0xFFFEE8CC).copy(alpha = 0.6f) else MaterialTheme.colorScheme.surfaceVariant
-                        ),
-                        border = BorderStroke(
-                            width = 1.dp,
-                            color = if (isExpense) PgDanger else Color.Transparent
-                        ),
-                        shape = RoundedCornerShape(10.dp)
-                    ) {
-                        Box(modifier = Modifier.padding(12.dp), contentAlignment = Alignment.Center) {
-                            Text(
-                                text = "Pengeluaran",
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = if (isExpense) PgDanger else MaterialTheme.colorScheme.onSurfaceVariant
+                // ===== HEADER GRADIENT =====
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            Brush.linearGradient(
+                                colors = if (isExpense)
+                                    listOf(Color(0xFF7F0000), accentColorLight)
+                                else
+                                    listOf(GreenDark, GreenLight)
                             )
+                        )
+                        .padding(horizontal = 24.dp, vertical = 28.dp)
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        // Toggle Pengeluaran / Pemasukan
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color.White.copy(alpha = 0.15f))
+                                .padding(4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            TransactionType.entries.forEach { type ->
+                                val isSelected = uiState.type == type
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(
+                                            if (isSelected) Color.White.copy(alpha = 0.25f)
+                                            else Color.Transparent
+                                        )
+                                        .clickable { viewModel.onTypeChange(type) }
+                                        .padding(vertical = 10.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = if (type == TransactionType.EXPENSE) "💸 Pengeluaran" else "💰 Pemasukan",
+                                        color = Color.White,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                        fontSize = 14.sp
+                                    )
+                                }
+                            }
                         }
-                    }
 
-                    // Pemasukan Chip Button
-                    Card(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clickable { viewModel.onTypeChange(TransactionType.INCOME) },
-                        colors = CardDefaults.cardColors(
-                            containerColor = if (isIncome) PgPrimaryLight else MaterialTheme.colorScheme.surfaceVariant
-                        ),
-                        border = BorderStroke(
-                            width = 1.dp,
-                            color = if (isIncome) PgPrimary else Color.Transparent
-                        ),
-                        shape = RoundedCornerShape(10.dp)
-                    ) {
-                        Box(modifier = Modifier.padding(12.dp), contentAlignment = Alignment.Center) {
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        // Nominal besar
+                        Text(
+                            text = "Rp",
+                            color = Color.White.copy(alpha = 0.7f),
+                            fontSize = 18.sp
+                        )
+                        BasicAmountInput(
+                            value = uiState.amount,
+                            onValueChange = viewModel::onAmountChange,
+                            isError = uiState.amountError != null
+                        )
+                        if (uiState.amountError != null) {
                             Text(
-                                text = "Pemasukan",
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = if (isIncome) PgPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                                text = uiState.amountError!!,
+                                color = Color.White.copy(alpha = 0.8f),
+                                fontSize = 12.sp
                             )
                         }
                     }
                 }
 
-                // 2. BIG AMOUNT DISPLAY - Terhubung ke uiState.amount & viewModel::onAmountChange
+                // ===== FORM =====
                 Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 20.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    TextField(
-                        value = uiState.amount,
-                        onValueChange = viewModel::onAmountChange,
-                        textStyle = TextStyle(
-                            fontSize = 32.sp,
-                            fontWeight = FontWeight.Bold,
-                            textAlign = TextAlign.Center,
-                            color = if (uiState.amountError != null) PgDanger else MaterialTheme.colorScheme.onSurface,
-                            letterSpacing = (-1).sp
-                        ),
-                        placeholder = {
-                            Text(
-                                text = "Rp 0",
-                                fontSize = 32.sp,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.fillMaxWidth(),
-                                textAlign = TextAlign.Center,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
-                            )
-                        },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        singleLine = true,
-                        colors = TextFieldDefaults.colors(
-                            focusedContainerColor = Color.Transparent,
-                            unfocusedContainerColor = Color.Transparent,
-                            disabledContainerColor = Color.Transparent,
-                            focusedIndicatorColor = PgPrimary,
-                            unfocusedIndicatorColor = PgPrimary.copy(alpha = 0.5f),
-                            errorIndicatorColor = PgDanger
-                        ),
-                        isError = uiState.amountError != null,
-                        modifier = Modifier.fillMaxWidth(0.85f)
-                    )
-
-                    // Indikator Pesan Error Validasi Nominal dari ViewModel Anda
-                    AnimatedVisibility(visible = uiState.amountError != null) {
-                        uiState.amountError?.let {
-                            Text(
-                                text = it,
-                                color = PgDanger,
-                                style = MaterialTheme.typography.bodySmall,
-                                modifier = Modifier.padding(top = 4.dp)
-                            )
-                        }
-                    }
-                }
-
-                // 3. FIELD DESCRIPTION - Terhubung ke uiState.description & viewModel::onDescriptionChange
-                Column(modifier = Modifier.fillMaxWidth()) {
                     Text(
-                        text = "Nama transaksi",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(bottom = 6.dp)
+                        text = "Nama Transaksi",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold
                     )
                     OutlinedTextField(
                         value = uiState.description,
                         onValueChange = viewModel::onDescriptionChange,
                         placeholder = { Text("Contoh: Makan siang kantor") },
                         singleLine = true,
-                        shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = PgPrimary,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
-                        )
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
                     )
-                }
 
-                // 4. CATEGORY GRID SELECTOR - Terhubung ke uiState.category & viewModel::onCategoryChange
-                Column(modifier = Modifier.fillMaxWidth()) {
                     Text(
                         text = "Kategori",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(bottom = 8.dp)
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold
                     )
 
-                    val categories = TransactionCategory.entries
-                    val chunkedCategories = categories.chunked(3) // Distribusi grid 3 kolom per baris
+                    val availableCategories = if (uiState.type == TransactionType.INCOME) {
+                        listOf(TransactionCategory.SALARY) // Jika pemasukan, HANYA tampilkan Gaji
+                    } else {
+                        // Jika pengeluaran, tampilkan selain Gaji
+                        listOf(
+                            TransactionCategory.FOOD,
+                            TransactionCategory.TRANSPORT,
+                            TransactionCategory.BILLS,
+                            TransactionCategory.OTHER
+                        )
+                    }
 
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        chunkedCategories.forEach { rowCategories ->
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                rowCategories.forEach { category ->
-                                    val isSelected = uiState.category == category
-                                    val emoji = when (category) {
-                                        TransactionCategory.FOOD -> "🍜"
-                                        TransactionCategory.TRANSPORT -> "🚗"
-                                        TransactionCategory.BILLS -> "🏠"
-                                        TransactionCategory.SALARY -> "💰"
-                                        TransactionCategory.OTHER -> "📦"
-                                    }
-
-                                    Card(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .clickable { viewModel.onCategoryChange(category) },
-                                        colors = CardDefaults.cardColors(
-                                            containerColor = if (isSelected) PgPrimaryLight else MaterialTheme.colorScheme.surfaceVariant
-                                        ),
-                                        border = BorderStroke(
-                                            width = 0.5.dp,
-                                            color = if (isSelected) PgPrimary else MaterialTheme.colorScheme.outlineVariant
-                                        ),
-                                        shape = RoundedCornerShape(10.dp)
-                                    ) {
-                                        Box(
-                                            modifier = Modifier.padding(vertical = 12.dp, horizontal = 4.dp),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Text(
-                                                text = "$emoji ${category.displayName}",
-                                                fontSize = 12.sp,
-                                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                                                color = if (isSelected) PgPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                                maxLines = 1
-                                            )
-                                        }
-                                    }
-                                }
-
-                                // Penyeimbang kolom baris terakhir agar simetris
-                                if (rowCategories.size < 3) {
-                                    repeat(3 - rowCategories.size) {
-                                        Spacer(modifier = Modifier.weight(1f))
-                                    }
-                                }
-                            }
-                        }
+                    if (initialCategory != null) {
+                        // ✅ Dari bottom sheet: tampilkan hanya kategori yang dipilih
+                        SelectedCategoryBadge(
+                            category = uiState.category,
+                            accentColor = accentColor
+                        )
+                    } else {
+                        // ✅ Masuk manual: tampilkan semua pilihan kategori
+                        CategoryGrid(
+                            selectedCategory = uiState.category,
+                            availableCategories = availableCategories,
+                            onCategorySelected = viewModel::onCategoryChange,
+                            accentColor = accentColor
+                        )
                     }
                 }
 
-                Spacer(modifier = Modifier.weight(1f))
+                Spacer(modifier = Modifier.height(16.dp))
 
-                // 5. BOTTOM SAVE BUTTON - Terhubung ke viewModel.saveTransaction() & uiState.canSave
-                Button(
-                    onClick = { viewModel.saveTransaction() },
+                // ===== TOMBOL SIMPAN =====
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(50.dp)
-                        .padding(bottom = 4.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = PgPrimary,
-                        disabledContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
-                    ),
-                    shape = RoundedCornerShape(12.dp),
-                    enabled = uiState.canSave
+                        .padding(horizontal = 20.dp, vertical = 16.dp)
                 ) {
-                    Text(
-                        text = if (uiState.isEditMode) "Perbarui Transaksi" else "Simpan Transaksi",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = if (uiState.canSave) Color.White else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-                    )
+                    Button(
+                        onClick = { viewModel.saveTransaction() },
+                        enabled = uiState.canSave,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(54.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = accentColor,
+                            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant
+                        )
+                    ) {
+                        Text(
+                            text = if (uiState.isEditMode) "Simpan Perubahan" else "Simpan Transaksi",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
+                        )
+                    }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun BasicAmountInput(
+    value: String,
+    onValueChange: (String) -> Unit,
+    isError: Boolean
+) {
+    androidx.compose.foundation.text.BasicTextField(
+        value = value,
+        onValueChange = onValueChange,
+        textStyle = androidx.compose.ui.text.TextStyle(
+            color = Color.White,
+            fontSize = 48.sp,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center
+        ),
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        singleLine = true,
+        decorationBox = { innerTextField ->
+            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxWidth()) {
+                if (value.isEmpty()) {
+                    Text(
+                        "0",
+                        color = Color.White.copy(alpha = 0.4f),
+                        fontSize = 48.sp,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center
+                    )
+                }
+                innerTextField()
+            }
+        }
+    )
+}
+
+@Composable
+private fun CategoryGrid(
+    selectedCategory: TransactionCategory,
+    availableCategories: List<TransactionCategory>,
+    onCategorySelected: (TransactionCategory) -> Unit,
+    accentColor: Color
+) {
+    val categoryEmojis = mapOf(
+        TransactionCategory.FOOD to "🍜",
+        TransactionCategory.TRANSPORT to "🚗",
+        TransactionCategory.BILLS to "🏠",
+        TransactionCategory.SALARY to "💵",
+        TransactionCategory.OTHER to "📦"
+    )
+    val chunked = availableCategories.chunked(3)
+    chunked.forEach { rowItems ->
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            rowItems.forEach { category ->
+                val isSelected = selectedCategory == category
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(
+                            if (isSelected) accentColor.copy(alpha = 0.12f)
+                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        )
+                        .border(
+                            width = if (isSelected) 1.5.dp else 0.dp,
+                            color = if (isSelected) accentColor else Color.Transparent,
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        .clickable { onCategorySelected(category) }
+                        .padding(vertical = 12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(text = categoryEmojis[category] ?: "📦", fontSize = 22.sp)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = category.displayName,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                            color = if (isSelected) accentColor
+                            else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+            repeat(3 - rowItems.size) {
+                Spacer(modifier = Modifier.weight(1f))
+            }
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+    }
+}
+
+@Composable
+private fun SelectedCategoryBadge(
+    category: TransactionCategory,
+    accentColor: Color
+) {
+    val categoryEmojis = mapOf(
+        TransactionCategory.FOOD to "🍜",
+        TransactionCategory.TRANSPORT to "🚗",
+        TransactionCategory.BILLS to "🏠",
+        TransactionCategory.SALARY to "💵",
+        TransactionCategory.OTHER to "📦"
+    )
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(accentColor.copy(alpha = 0.10f))
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text(
+            text = categoryEmojis[category] ?: "📦",
+            fontSize = 28.sp
+        )
+        Column {
+            Text(
+                text = category.displayName,
+                fontWeight = FontWeight.SemiBold,
+                color = accentColor,
+                fontSize = 15.sp
+            )
+            Text(
+                text = "Dipilih dari menu cepat",
+                style = MaterialTheme.typography.labelSmall,
+                color = accentColor.copy(alpha = 0.6f)
+            )
+        }
+        Spacer(modifier = Modifier.weight(1f))
+        Icon(
+            imageVector = Icons.Outlined.CheckCircle,
+            contentDescription = null,
+            tint = accentColor,
+            modifier = Modifier.size(20.dp)
+        )
     }
 }

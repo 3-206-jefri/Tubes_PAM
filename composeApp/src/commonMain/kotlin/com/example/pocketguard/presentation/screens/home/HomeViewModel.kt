@@ -3,12 +3,14 @@ package com.example.pocketguard.presentation.screens.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.pocketguard.domain.model.Transaction
-import com.example.pocketguard.domain.model.TransactionCategory
 import com.example.pocketguard.domain.usecase.DeleteTransactionUseCase
 import com.example.pocketguard.domain.usecase.GetAllTransactionsUseCase
 import com.example.pocketguard.domain.usecase.TransactionSortBy
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 
 class HomeViewModel(
     private val getAllTransactionsUseCase: GetAllTransactionsUseCase,
@@ -16,44 +18,48 @@ class HomeViewModel(
 ) : ViewModel() {
 
     private val _query = MutableStateFlow("")
-    private val _selectedCategory = MutableStateFlow<TransactionCategory?>(null)
+    // 🛠️ PERBAIKAN: Mengganti kategori menjadi filter Bulan
+    private val _selectedMonth = MutableStateFlow<String?>(null)
     private val _sortBy = MutableStateFlow(TransactionSortBy.DATE_DESC)
     val sortBy: StateFlow<TransactionSortBy> = _sortBy.asStateFlow()
 
-    // Menggabungkan aliran data (Search, Filter, Sort, dan Database)
     val uiState: StateFlow<HomeUiState> = combine(
         _query,
-        _selectedCategory,
+        _selectedMonth,
         _sortBy,
         getAllTransactionsUseCase()
-    ) { query, category, sort, transactions ->
-        // 1. Filter berdasarkan pencarian deskripsi
+    ) { query, selectedMonth, sort, transactions ->
+
+        // 1. Ekstrak semua bulan unik dari data transaksi untuk Filter Chips
+        val availableMonths = transactions.map { getMonthYear(it.createdAt) }.distinct()
+
+        // 2. Filter berdasarkan Pencarian
         val filteredByQuery = if (query.isBlank()) {
             transactions
         } else {
             transactions.filter { it.description.contains(query, ignoreCase = true) }
         }
 
-        // 2. Filter berdasarkan kategori
-        val filteredByCategory = if (category == null) {
+        // 3. Filter berdasarkan Bulan
+        val filteredByMonth = if (selectedMonth == null) {
             filteredByQuery
         } else {
-            filteredByQuery.filter { it.category == category }
+            filteredByQuery.filter { getMonthYear(it.createdAt) == selectedMonth }
         }
 
-        // 3. Urutkan data (Logika sorting sudah ada di UseCase, tapi bisa dipertegas di sini)
+        // 4. Urutkan data
         val sortedTransactions = when (sort) {
-            TransactionSortBy.DATE_ASC -> filteredByCategory.sortedBy { it.createdAt }
-            TransactionSortBy.DATE_DESC -> filteredByCategory.sortedByDescending { it.createdAt }
-            TransactionSortBy.AMOUNT_ASC -> filteredByCategory.sortedBy { it.amount }
-            TransactionSortBy.AMOUNT_DESC -> filteredByCategory.sortedByDescending { it.amount }
-            TransactionSortBy.CATEGORY -> filteredByCategory.sortedBy { it.category.name }
+            TransactionSortBy.DATE_ASC -> filteredByMonth.sortedBy { it.createdAt }
+            TransactionSortBy.DATE_DESC -> filteredByMonth.sortedByDescending { it.createdAt }
+            TransactionSortBy.AMOUNT_ASC -> filteredByMonth.sortedBy { it.amount }
+            TransactionSortBy.AMOUNT_DESC -> filteredByMonth.sortedByDescending { it.amount }
+            TransactionSortBy.CATEGORY -> filteredByMonth.sortedBy { it.category.name }
         }
 
         if (sortedTransactions.isEmpty()) {
-            HomeUiState.Empty(query, category)
+            HomeUiState.Empty(query, selectedMonth, availableMonths)
         } else {
-            HomeUiState.Success(sortedTransactions, query, category)
+            HomeUiState.Success(sortedTransactions, query, selectedMonth, availableMonths)
         }
     }.stateIn(
         scope = viewModelScope,
@@ -63,27 +69,28 @@ class HomeViewModel(
 
     // ==================== USER ACTIONS ====================
 
-    fun onSearchQueryChange(newQuery: String) {
-        _query.value = newQuery
-    }
+    fun onSearchQueryChange(newQuery: String) { _query.value = newQuery }
 
     fun clearSearch() {
         _query.value = ""
-        _selectedCategory.value = null
+        _selectedMonth.value = null
     }
 
-    fun onCategorySelected(category: TransactionCategory?) {
-        _selectedCategory.value = category
-    }
-
-    fun onSortByChanged(sort: TransactionSortBy) {
-        _sortBy.value = sort
-    }
+    fun onMonthSelected(month: String?) { _selectedMonth.value = month }
+    fun onSortByChanged(sort: TransactionSortBy) { _sortBy.value = sort }
 
     fun deleteTransaction(id: Long) {
         viewModelScope.launch {
             deleteTransactionUseCase(id)
         }
+    }
+
+    // 🛠️ FUNGSI HELPER: Mengubah timestamp ms ke format "Bulan Tahun" (Contoh: "Mei 2026")
+    private fun getMonthYear(timestamp: Long): String {
+        val instant = Instant.fromEpochMilliseconds(timestamp)
+        val dateTime = instant.toLocalDateTime(TimeZone.currentSystemDefault())
+        val monthNames = arrayOf("Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Ags", "Sep", "Okt", "Nov", "Des")
+        return "${monthNames[dateTime.monthNumber - 1]} ${dateTime.year}"
     }
 }
 
@@ -95,12 +102,14 @@ sealed interface HomeUiState {
     data class Success(
         val transactions: List<Transaction>,
         val query: String,
-        val category: TransactionCategory?
+        val selectedMonth: String?,
+        val availableMonths: List<String>
     ) : HomeUiState
 
     data class Empty(
         val query: String,
-        val category: TransactionCategory?
+        val selectedMonth: String?,
+        val availableMonths: List<String>
     ) : HomeUiState
 
     data class Error(val message: String) : HomeUiState

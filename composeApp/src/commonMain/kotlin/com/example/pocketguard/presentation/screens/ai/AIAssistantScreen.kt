@@ -1,6 +1,6 @@
 package com.example.pocketguard.presentation.screens.ai
 
-import androidx.compose.animation.AnimatedVisibility
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -17,21 +17,17 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.pocketguard.presentation.theme.PgPrimary
 import com.example.pocketguard.presentation.theme.PgPrimaryLight
-import com.example.pocketguard.presentation.theme.PgWarning
 import org.koin.compose.viewmodel.koinViewModel
 
-// Struktur data pesan lokal pembantu jika belum didefinisikan secara eksplisit
-data class ChatMessage(
-    val text: String,
-    val isUser: Boolean
-)
+// Catatan: Jika ChatMessage sudah dideklarasikan di AIAssistantViewModel.kt,
+// Anda bisa menghapus data class ini agar tidak bentrok (duplicate class).
+// Jika belum, biarkan saja di sini.
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -42,24 +38,24 @@ fun AIAssistantScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    // State lokal untuk menangani teks input obrolan pengguna
     var promptInput by remember { mutableStateOf("") }
-
-    // Simulasi daftar chat history lokal yang disinkronkan dengan respons arsitektur Anda
-    val chatMessages = remember { mutableStateListOf<ChatMessage>() }
     val listState = rememberLazyListState()
 
-    // Memuat teks awal jika dikirimkan lewat argument navigasi halaman lain
+    // 1. MENGAMBIL DATA DARI VIEWMODEL (Bukan lagi simulasi lokal)
+    val chatMessages = uiState.messages
+
     LaunchedEffect(initialText) {
         if (!initialText.isNullOrBlank()) {
             promptInput = initialText
         }
     }
 
-    // Mengotomatiskan scroll ke baris chat paling bawah setiap ada pesan baru masuk
-    LaunchedEffect(chatMessages.size) {
+    // 2. OTOMATIS SCROLL SAAT ADA PESAN BARU ATAU LOADING
+    LaunchedEffect(chatMessages.size, uiState.isLoading) {
         if (chatMessages.isNotEmpty()) {
-            listState.animateScrollToItem(chatMessages.size - 1)
+            // Tambah target scroll jika ada indikator loading di paling bawah
+            val targetIndex = if (uiState.isLoading) chatMessages.size else chatMessages.size - 1
+            listState.animateScrollToItem(targetIndex)
         }
     }
 
@@ -74,7 +70,6 @@ fun AIAssistantScreen(
                 }
             )
         },
-        // 5. AI INPUT ROW - Kotak input pengetikan pesan di bagian bawah layar
         bottomBar = {
             Surface(
                 modifier = Modifier.fillMaxWidth().imePadding(),
@@ -105,21 +100,15 @@ fun AIAssistantScreen(
                     IconButton(
                         onClick = {
                             if (promptInput.isNotBlank()) {
-                                chatMessages.add(ChatMessage(text = promptInput, isUser = true))
-                                // Integrasikan dengan fungsi pengiriman ViewModel/AIRepository Anda di sini
-                                // viewModel.sendFinancialPrompt(promptInput)
+                                // 3. MENGIRIM PESAN ASLI KE GEMINI API VIA VIEWMODEL
+                                viewModel.sendMessage(promptInput)
                                 promptInput = ""
-
-                                // Simulasi jawaban pintar tiruan dari AI untuk testing Sprint 2 demo
-                                chatMessages.add(ChatMessage(
-                                    text = "Analisis terdeteksi. Pengeluaran hiburanmu sudah 85% dari batas anggaran bulanan. Pertimbangkan membatasi streaming service untuk menghemat Rp 150.000! 💡",
-                                    isUser = false
-                                ))
                             }
                         },
                         colors = IconButtonDefaults.iconButtonColors(containerColor = PgPrimary),
                         modifier = Modifier.size(44.dp),
-                        enabled = promptInput.isNotBlank()
+                        // Tombol dinonaktifkan jika input kosong atau AI sedang loading membalas
+                        enabled = promptInput.isNotBlank() && !uiState.isLoading
                     ) {
                         Icon(
                             Icons.AutoMirrored.Filled.Send,
@@ -140,7 +129,6 @@ fun AIAssistantScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
 
-            // 1. AI ACTIVE STATUS BADGE
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -161,54 +149,6 @@ fun AIAssistantScreen(
                 )
             }
 
-            // 2. AI INSIGHT PANEL - Bar Indikator Batas Alokasi Anggaran Bulanan
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        text = "Analisis bulan ini",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    // Baris Indikator Kategori Makanan (Status Aman)
-                    Column {
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("🍜 Makanan (62%)", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        Spacer(modifier = Modifier.height(4.dp))
-                        LinearProgressIndicator(
-                            progress = { 0.62f },
-                            color = PgPrimary,
-                            trackColor = MaterialTheme.colorScheme.outlineVariant,
-                            strokeCap = StrokeCap.Round,
-                            modifier = Modifier.fillMaxWidth().height(6.dp)
-                        )
-                    }
-
-                    // Baris Indikator Kategori Hiburan (Status Melebihi Batas Anggaran)
-                    Column {
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("🎬 Hiburan (85%)", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("⚠️ Melebihi batas", fontSize = 11.sp, color = PgWarning, fontWeight = FontWeight.Bold)
-                        }
-                        Spacer(modifier = Modifier.height(4.dp))
-                        LinearProgressIndicator(
-                            progress = { 0.85f },
-                            color = PgWarning,
-                            trackColor = MaterialTheme.colorScheme.outlineVariant,
-                            strokeCap = StrokeCap.Round,
-                            modifier = Modifier.fillMaxWidth().height(6.dp)
-                        )
-                    }
-                }
-            }
-
-            // 3 & 4. SCROLLABLE CHAT ITEMS & ASYMMETRIC CORNER BUBBLES
             LazyColumn(
                 state = listState,
                 modifier = Modifier.weight(1f).fillMaxWidth(),
@@ -229,8 +169,8 @@ fun AIAssistantScreen(
                             shape = RoundedCornerShape(
                                 topStart = 12.dp,
                                 topEnd = 12.dp,
-                                bottomStart = if (isUser) 12.dp else 2.dp, // Lengkungan asimetris bot CSS
-                                bottomEnd = if (isUser) 2.dp else 12.dp   // Lengkungan asimetris user CSS
+                                bottomStart = if (isUser) 12.dp else 2.dp,
+                                bottomEnd = if (isUser) 2.dp else 12.dp
                             ),
                             border = if (isUser) null else BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant),
                             modifier = Modifier.fillMaxWidth(0.85f)
@@ -242,6 +182,29 @@ fun AIAssistantScreen(
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                                 lineHeight = 18.sp
                             )
+                        }
+                    }
+                }
+
+                // 4. INDIKATOR LOADING AI MENGETIK
+                if (uiState.isLoading) {
+                    item {
+                        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
+                            Card(
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                                shape = RoundedCornerShape(12.dp, 12.dp, 12.dp, 2.dp),
+                                modifier = Modifier.padding(top = 4.dp)
+                            ) {
+                                Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(14.dp),
+                                        strokeWidth = 2.dp,
+                                        color = PgPrimary
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("AI sedang mengetik...", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
                         }
                     }
                 }
