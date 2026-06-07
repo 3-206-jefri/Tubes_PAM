@@ -1,6 +1,5 @@
 package com.example.pocketguard.presentation.screens.ai
 
-
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -17,17 +16,17 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.pocketguard.presentation.theme.PgPrimary
 import com.example.pocketguard.presentation.theme.PgPrimaryLight
 import org.koin.compose.viewmodel.koinViewModel
-
-// Catatan: Jika ChatMessage sudah dideklarasikan di AIAssistantViewModel.kt,
-// Anda bisa menghapus data class ini agar tidak bentrok (duplicate class).
-// Jika belum, biarkan saja di sini.
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,8 +39,6 @@ fun AIAssistantScreen(
 
     var promptInput by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
-
-    // 1. MENGAMBIL DATA DARI VIEWMODEL (Bukan lagi simulasi lokal)
     val chatMessages = uiState.messages
 
     LaunchedEffect(initialText) {
@@ -50,10 +47,8 @@ fun AIAssistantScreen(
         }
     }
 
-    // 2. OTOMATIS SCROLL SAAT ADA PESAN BARU ATAU LOADING
     LaunchedEffect(chatMessages.size, uiState.isLoading) {
         if (chatMessages.isNotEmpty()) {
-            // Tambah target scroll jika ada indikator loading di paling bawah
             val targetIndex = if (uiState.isLoading) chatMessages.size else chatMessages.size - 1
             listState.animateScrollToItem(targetIndex)
         }
@@ -100,14 +95,12 @@ fun AIAssistantScreen(
                     IconButton(
                         onClick = {
                             if (promptInput.isNotBlank()) {
-                                // 3. MENGIRIM PESAN ASLI KE GEMINI API VIA VIEWMODEL
                                 viewModel.sendMessage(promptInput)
                                 promptInput = ""
                             }
                         },
                         colors = IconButtonDefaults.iconButtonColors(containerColor = PgPrimary),
                         modifier = Modifier.size(44.dp),
-                        // Tombol dinonaktifkan jika input kosong atau AI sedang loading membalas
                         enabled = promptInput.isNotBlank() && !uiState.isLoading
                     ) {
                         Icon(
@@ -128,6 +121,8 @@ fun AIAssistantScreen(
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+
+            Spacer(modifier = Modifier.height(4.dp))
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -152,11 +147,16 @@ fun AIAssistantScreen(
             LazyColumn(
                 state = listState,
                 modifier = Modifier.weight(1f).fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-                contentPadding = PaddingValues(vertical = 4.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                contentPadding = PaddingValues(top = 16.dp, bottom = 16.dp, start = 16.dp, end = 16.dp)
             ) {
                 items(chatMessages) { message ->
                     val isUser = message.isUser
+                    val displayText: AnnotatedString = if (isUser) {
+                        buildAnnotatedString { append(message.text) }
+                    } else {
+                        parseAdvancedMarkdown(message.text)
+                    }
 
                     Box(
                         modifier = Modifier.fillMaxWidth(),
@@ -167,42 +167,40 @@ fun AIAssistantScreen(
                                 containerColor = if (isUser) PgPrimary else MaterialTheme.colorScheme.surfaceVariant
                             ),
                             shape = RoundedCornerShape(
-                                topStart = 12.dp,
-                                topEnd = 12.dp,
-                                bottomStart = if (isUser) 12.dp else 2.dp,
-                                bottomEnd = if (isUser) 2.dp else 12.dp
+                                topStart = 16.dp,
+                                topEnd = 16.dp,
+                                bottomStart = if (isUser) 16.dp else 4.dp,
+                                bottomEnd = if (isUser) 4.dp else 16.dp
                             ),
                             border = if (isUser) null else BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant),
-                            modifier = Modifier.fillMaxWidth(0.85f)
+                            modifier = Modifier.widthIn(max = 320.dp)
                         ) {
                             Text(
-                                text = message.text,
-                                fontSize = 13.sp,
+                                text = displayText,
+                                fontSize = 14.sp,
                                 color = if (isUser) Color.White else MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                                lineHeight = 18.sp
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                                lineHeight = 22.sp
                             )
                         }
                     }
                 }
 
-                // 4. INDIKATOR LOADING AI MENGETIK
                 if (uiState.isLoading) {
                     item {
                         Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
                             Card(
                                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                                shape = RoundedCornerShape(12.dp, 12.dp, 12.dp, 2.dp),
-                                modifier = Modifier.padding(top = 4.dp)
+                                shape = RoundedCornerShape(16.dp, 16.dp, 16.dp, 4.dp),
                             ) {
-                                Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                                     CircularProgressIndicator(
                                         modifier = Modifier.size(14.dp),
                                         strokeWidth = 2.dp,
                                         color = PgPrimary
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text("AI sedang mengetik...", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text("AI sedang berpikir...", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                             }
                         }
@@ -211,4 +209,76 @@ fun AIAssistantScreen(
             }
         }
     }
+}
+
+/**
+ * 🛠️ HELPER BARU: Advanced Markdown Parser (Fixed)
+ * Mampu membaca Bold (**), Heading (###), Bullet Points (*), dan menghapus (---)
+ */
+private fun parseAdvancedMarkdown(text: String): AnnotatedString {
+    return buildAnnotatedString {
+        val lines = text.split("\n")
+
+        lines.forEachIndexed { index, line ->
+            var processedLine = line.trimEnd()
+
+            // 1. Abaikan / Hapus garis horizontal (---)
+            if (processedLine.trim() == "---") {
+                return@forEachIndexed
+            }
+
+            // 2. Deteksi Header (### atau ####)
+            var isHeader = false
+            if (processedLine.startsWith("### ")) {
+                processedLine = processedLine.removePrefix("### ")
+                isHeader = true
+            } else if (processedLine.startsWith("#### ")) {
+                processedLine = processedLine.removePrefix("#### ")
+                isHeader = true
+            } else if (processedLine.startsWith("## ")) {
+                processedLine = processedLine.removePrefix("## ")
+                isHeader = true
+            }
+
+            // 3. Deteksi Bullet Points (* atau -) dan ganti jadi tanda titik bulat rapi
+            if (processedLine.startsWith("* ") || processedLine.startsWith("- ")) {
+                processedLine = "• " + processedLine.drop(2)
+            }
+
+            // 4. Masukkan teks ke UI dengan format
+            if (isHeader) {
+                // Beri jarak ekstra (enter tambahan) sebelum header agar tidak menempel
+                if (index > 0) append("\n")
+
+                withStyle(style = SpanStyle(fontWeight = FontWeight.Bold, fontSize = 16.sp, color = PgPrimary)) {
+                    appendWithBoldFormatting(processedLine)
+                }
+            } else {
+                appendWithBoldFormatting(processedLine)
+            }
+
+            // Tambahkan baris baru (enter) kecuali untuk baris terakhir
+            if (index < lines.size - 1) {
+                append("\n")
+            }
+        }
+    }
+}
+
+/**
+ * Fungsi kecil untuk mengeksekusi format **teks tebal** di dalam satu baris kalimat
+ */
+private fun AnnotatedString.Builder.appendWithBoldFormatting(text: String) {
+    var currentIndex = 0
+    val boldRegex = Regex("\\*\\*(.*?)\\*\\*")
+    val matches = boldRegex.findAll(text)
+
+    for (match in matches) {
+        append(text.substring(currentIndex, match.range.first))
+        withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
+            append(match.groupValues[1])
+        }
+        currentIndex = match.range.last + 1
+    }
+    append(text.substring(currentIndex))
 }
