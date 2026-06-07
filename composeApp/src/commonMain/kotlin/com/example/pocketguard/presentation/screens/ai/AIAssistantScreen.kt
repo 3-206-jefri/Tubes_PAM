@@ -2,6 +2,7 @@ package com.example.pocketguard.presentation.screens.ai
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -10,7 +11,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,6 +23,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -124,6 +128,7 @@ fun AIAssistantScreen(
 
             Spacer(modifier = Modifier.height(4.dp))
 
+            // Indikator AI Aktif
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -148,8 +153,21 @@ fun AIAssistantScreen(
                 state = listState,
                 modifier = Modifier.weight(1f).fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(top = 16.dp, bottom = 16.dp, start = 16.dp, end = 16.dp)
+                contentPadding = PaddingValues(top = 8.dp, bottom = 16.dp)
             ) {
+
+                // ==================== TAMPILAN AWAL (PROMPT HINTS) ====================
+                if (chatMessages.isEmpty()) {
+                    item {
+                        WelcomeSuggestionSection(
+                            onSuggestionClick = { suggestion ->
+                                viewModel.sendMessage(suggestion)
+                            }
+                        )
+                    }
+                }
+
+                // ==================== DAFTAR CHAT ====================
                 items(chatMessages) { message ->
                     val isUser = message.isUser
                     val displayText: AnnotatedString = if (isUser) {
@@ -164,7 +182,8 @@ fun AIAssistantScreen(
                     ) {
                         Card(
                             colors = CardDefaults.cardColors(
-                                containerColor = if (isUser) PgPrimary else MaterialTheme.colorScheme.surfaceVariant
+                                // 🛠️ PERBAIKAN: Background AI dibuat sedikit lebih soft dan membaur
+                                containerColor = if (isUser) PgPrimary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
                             ),
                             shape = RoundedCornerShape(
                                 topStart = 16.dp,
@@ -172,7 +191,9 @@ fun AIAssistantScreen(
                                 bottomStart = if (isUser) 16.dp else 4.dp,
                                 bottomEnd = if (isUser) 4.dp else 16.dp
                             ),
-                            border = if (isUser) null else BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant),
+                            // 🛠️ PERBAIKAN: Menghapus border AI agar tidak kaku, diganti dengan elevation ringan
+                            border = null,
+                            elevation = CardDefaults.cardElevation(defaultElevation = if (isUser) 0.dp else 1.dp),
                             modifier = Modifier.widthIn(max = 320.dp)
                         ) {
                             Text(
@@ -186,12 +207,14 @@ fun AIAssistantScreen(
                     }
                 }
 
+                // ==================== INDIKATOR LOADING ====================
                 if (uiState.isLoading) {
                     item {
                         Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
                             Card(
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
                                 shape = RoundedCornerShape(16.dp, 16.dp, 16.dp, 4.dp),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
                             ) {
                                 Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                                     CircularProgressIndicator(
@@ -211,10 +234,97 @@ fun AIAssistantScreen(
     }
 }
 
-/**
- * 🛠️ HELPER BARU: Advanced Markdown Parser (Fixed)
- * Mampu membaca Bold (**), Heading (###), Bullet Points (*), dan menghapus (---)
- */
+/* =====================================================================
+ * KOMPONEN BARU: WELCOME & PROMPT HINTS
+ * ===================================================================== */
+@Composable
+private fun WelcomeSuggestionSection(onSuggestionClick: (String) -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 32.dp, bottom = 16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Box(
+            modifier = Modifier
+                .size(64.dp)
+                .background(PgPrimaryLight, CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.AutoAwesome,
+                contentDescription = null,
+                tint = PgPrimary,
+                modifier = Modifier.size(32.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text(
+            text = "Halo! Saya PocketGuard AI",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = "Asisten keuangan pribadi Anda. Bingung mau tanya apa? Coba pilih salah satu dari topik di bawah ini:",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 24.dp)
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Daftar Hints / Saran Prompt
+        val suggestions = listOf(
+            "Bagaimana kondisi keuangan saya bulan ini?",
+            "Bantu buatkan rencana anggaran dari gaji saya",
+            "Adakah pengeluaran saya yang bisa dihemat?",
+            "Beri saya tips menabung yang efektif"
+        )
+
+        suggestions.forEach { suggestion ->
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 6.dp)
+                    .clickable { onSuggestionClick(suggestion) },
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = suggestion,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                        contentDescription = null,
+                        tint = PgPrimary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+
+/* =====================================================================
+ * HELPER: ADVANCED MARKDOWN PARSER
+ * ===================================================================== */
 private fun parseAdvancedMarkdown(text: String): AnnotatedString {
     return buildAnnotatedString {
         val lines = text.split("\n")
@@ -222,12 +332,8 @@ private fun parseAdvancedMarkdown(text: String): AnnotatedString {
         lines.forEachIndexed { index, line ->
             var processedLine = line.trimEnd()
 
-            // 1. Abaikan / Hapus garis horizontal (---)
-            if (processedLine.trim() == "---") {
-                return@forEachIndexed
-            }
+            if (processedLine.trim() == "---") return@forEachIndexed
 
-            // 2. Deteksi Header (### atau ####)
             var isHeader = false
             if (processedLine.startsWith("### ")) {
                 processedLine = processedLine.removePrefix("### ")
@@ -240,16 +346,12 @@ private fun parseAdvancedMarkdown(text: String): AnnotatedString {
                 isHeader = true
             }
 
-            // 3. Deteksi Bullet Points (* atau -) dan ganti jadi tanda titik bulat rapi
             if (processedLine.startsWith("* ") || processedLine.startsWith("- ")) {
                 processedLine = "• " + processedLine.drop(2)
             }
 
-            // 4. Masukkan teks ke UI dengan format
             if (isHeader) {
-                // Beri jarak ekstra (enter tambahan) sebelum header agar tidak menempel
                 if (index > 0) append("\n")
-
                 withStyle(style = SpanStyle(fontWeight = FontWeight.Bold, fontSize = 16.sp, color = PgPrimary)) {
                     appendWithBoldFormatting(processedLine)
                 }
@@ -257,17 +359,11 @@ private fun parseAdvancedMarkdown(text: String): AnnotatedString {
                 appendWithBoldFormatting(processedLine)
             }
 
-            // Tambahkan baris baru (enter) kecuali untuk baris terakhir
-            if (index < lines.size - 1) {
-                append("\n")
-            }
+            if (index < lines.size - 1) append("\n")
         }
     }
 }
 
-/**
- * Fungsi kecil untuk mengeksekusi format **teks tebal** di dalam satu baris kalimat
- */
 private fun AnnotatedString.Builder.appendWithBoldFormatting(text: String) {
     var currentIndex = 0
     val boldRegex = Regex("\\*\\*(.*?)\\*\\*")
