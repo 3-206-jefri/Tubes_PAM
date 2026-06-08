@@ -2,6 +2,7 @@ package com.example.pocketguard.presentation.screens.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.pocketguard.data.local.datastore.UserPreferences
 import com.example.pocketguard.domain.model.Transaction
 import com.example.pocketguard.domain.model.TransactionType
 import com.example.pocketguard.domain.usecase.DeleteTransactionUseCase
@@ -15,7 +16,8 @@ import kotlinx.datetime.toLocalDateTime
 
 class HomeViewModel(
     private val getAllTransactionsUseCase: GetAllTransactionsUseCase,
-    private val deleteTransactionUseCase: DeleteTransactionUseCase
+    private val deleteTransactionUseCase: DeleteTransactionUseCase,
+    private val userPreferences: UserPreferences
 ) : ViewModel() {
 
     /* =====================================================================
@@ -33,8 +35,9 @@ class HomeViewModel(
         _query,
         _selectedMonth,
         _sortBy,
-        getAllTransactionsUseCase()
-    ) { query, selectedMonth, sort, transactions ->
+        getAllTransactionsUseCase(),
+        userPreferences.budgetLimit
+    ) { query, selectedMonth, sort, transactions , budgetLimit ->
 
         val allTimeIncome = transactions.filter { it.type == TransactionType.INCOME }.sumOf { it.amount }
         val allTimeExpense = transactions.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount }
@@ -55,9 +58,9 @@ class HomeViewModel(
         }
 
         if (sortedTransactions.isEmpty()) {
-            HomeUiState.Empty(query, selectedMonth, availableMonths, absoluteTotalBalance)
+            HomeUiState.Empty(query, selectedMonth, availableMonths, absoluteTotalBalance, budgetLimit )
         } else {
-            HomeUiState.Success(sortedTransactions, query, selectedMonth, availableMonths, absoluteTotalBalance)
+            HomeUiState.Success(sortedTransactions, query, selectedMonth, availableMonths, absoluteTotalBalance,budgetLimit)
         }
     }.stateIn(
         scope = viewModelScope,
@@ -84,6 +87,11 @@ class HomeViewModel(
             deleteTransactionUseCase(id)
         }
     }
+    fun updateBudgetLimit(limit: Double) {
+        viewModelScope.launch {
+            userPreferences.setBudgetLimit(limit)
+        }
+    }
 
     /* =====================================================================
      * HELPER FUNCTIONS
@@ -107,14 +115,16 @@ sealed interface HomeUiState {
         val query: String,
         val selectedMonth: String?,
         val availableMonths: List<String>,
-        val totalBalance: Double
+        val totalBalance: Double,
+        val budgetLimit: Double
     ) : HomeUiState
 
     data class Empty(
         val query: String,
         val selectedMonth: String?,
         val availableMonths: List<String>,
-        val totalBalance: Double
+        val totalBalance: Double,
+        val budgetLimit: Double
     ) : HomeUiState
 
     data class Error(val message: String) : HomeUiState
