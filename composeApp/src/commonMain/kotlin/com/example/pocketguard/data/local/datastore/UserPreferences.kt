@@ -9,128 +9,46 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
-/**
- * User Preferences menggunakan DataStore
- *
- * DataStore adalah pengganti SharedPreferences yang lebih modern:
- * - Asynchronous dengan Coroutines dan Flow
- * - Type-safe dengan Preferences Keys
- * - Tidak blocking main thread
- *
- * @param dataStore Instance DataStore dari platform
- */
 class UserPreferences(
     private val dataStore: DataStore<Preferences>
 ) {
-    // ==================== PREFERENCE KEYS ====================
-
     private object Keys {
         val DARK_MODE = booleanPreferencesKey("dark_mode")
         val SORT_BY = stringPreferencesKey("sort_by")
         val DEFAULT_CATEGORY = stringPreferencesKey("default_category")
         val SHOW_PREVIEW = booleanPreferencesKey("show_preview")
         val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
-
-        val BUDGET_LIMIT = doublePreferencesKey("budget_limit")
+        // BUDGET_LIMIT statis dihapus dari sini
     }
 
-    // ==================== DARK MODE ====================
+    val isDarkMode: Flow<Boolean> = dataStore.data.map { it[Keys.DARK_MODE] ?: false }
+    suspend fun setDarkMode(enabled: Boolean) { dataStore.edit { it[Keys.DARK_MODE] = enabled } }
 
-    /**
-     * Observe dark mode setting
-     */
-    val isDarkMode: Flow<Boolean> = dataStore.data.map { prefs ->
-        prefs[Keys.DARK_MODE] ?: false
-    }
+    val sortBy: Flow<String> = dataStore.data.map { it[Keys.SORT_BY] ?: "UPDATED_DESC" }
+    suspend fun setSortBy(sortBy: String) { dataStore.edit { it[Keys.SORT_BY] = sortBy } }
 
-    /**
-     * Set dark mode
-     */
-    suspend fun setDarkMode(enabled: Boolean) {
-        dataStore.edit { prefs ->
-            prefs[Keys.DARK_MODE] = enabled
+    val defaultCategory: Flow<String> = dataStore.data.map { it[Keys.DEFAULT_CATEGORY] ?: "GENERAL" }
+    suspend fun setDefaultCategory(category: String) { dataStore.edit { it[Keys.DEFAULT_CATEGORY] = category } }
+
+    val showPreview: Flow<Boolean> = dataStore.data.map { it[Keys.SHOW_PREVIEW] ?: true }
+    suspend fun setShowPreview(show: Boolean) { dataStore.edit { it[Keys.SHOW_PREVIEW] = show } }
+
+    val isOnboardingCompleted: Flow<Boolean> = dataStore.data.map { it[Keys.ONBOARDING_COMPLETED] ?: false }
+    suspend fun setOnboardingCompleted() { dataStore.edit { it[Keys.ONBOARDING_COMPLETED] = true } }
+
+    // ==================== BUDGET LIMIT DINAMIS ====================
+
+    fun getBudgetLimit(monthYear: String): Flow<Double> {
+        val dynamicKey = doublePreferencesKey("budget_limit_$monthYear")
+        return dataStore.data.map { prefs ->
+            prefs[dynamicKey] ?: 0.0
         }
     }
 
-    // ==================== SORT BY ====================
-
-    /**
-     * Observe sort preference
-     */
-    val sortBy: Flow<String> = dataStore.data.map { prefs ->
-        prefs[Keys.SORT_BY] ?: "UPDATED_DESC"
-    }
-
-    /**
-     * Set sort preference
-     */
-    suspend fun setSortBy(sortBy: String) {
+    suspend fun setBudgetLimit(monthYear: String, limit: Double) {
+        val dynamicKey = doublePreferencesKey("budget_limit_$monthYear")
         dataStore.edit { prefs ->
-            prefs[Keys.SORT_BY] = sortBy
-        }
-    }
-
-    // ==================== DEFAULT CATEGORY ====================
-
-    /**
-     * Observe default category
-     */
-    val defaultCategory: Flow<String> = dataStore.data.map { prefs ->
-        prefs[Keys.DEFAULT_CATEGORY] ?: "GENERAL"
-    }
-
-    /**
-     * Set default category
-     */
-    suspend fun setDefaultCategory(category: String) {
-        dataStore.edit { prefs ->
-            prefs[Keys.DEFAULT_CATEGORY] = category
-        }
-    }
-
-    // ==================== SHOW PREVIEW ====================
-
-    /**
-     * Observe show preview setting
-     */
-    val showPreview: Flow<Boolean> = dataStore.data.map { prefs ->
-        prefs[Keys.SHOW_PREVIEW] ?: true
-    }
-
-    /**
-     * Set show preview
-     */
-    suspend fun setShowPreview(show: Boolean) {
-        dataStore.edit { prefs ->
-            prefs[Keys.SHOW_PREVIEW] = show
-        }
-    }
-
-    // ==================== ONBOARDING ====================
-
-    /**
-     * Check if onboarding completed
-     */
-    val isOnboardingCompleted: Flow<Boolean> = dataStore.data.map { prefs ->
-        prefs[Keys.ONBOARDING_COMPLETED] ?: false
-    }
-
-    /**
-     * Set onboarding completed
-     */
-    suspend fun setOnboardingCompleted() {
-        dataStore.edit { prefs ->
-            prefs[Keys.ONBOARDING_COMPLETED] = true
-        }
-    }
-
-    val budgetLimit: Flow<Double> = dataStore.data.map { prefs ->
-        prefs[Keys.BUDGET_LIMIT] ?: 0.0
-    }
-
-    suspend fun setBudgetLimit(limit: Double) {
-        dataStore.edit { prefs ->
-            prefs[Keys.BUDGET_LIMIT] = limit
+            prefs[dynamicKey] = limit
         }
     }
 }

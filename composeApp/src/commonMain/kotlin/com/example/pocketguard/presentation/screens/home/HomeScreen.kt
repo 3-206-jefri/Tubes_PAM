@@ -82,6 +82,17 @@ fun HomeScreen(
         is HomeUiState.Empty -> state.budgetLimit
         else -> 0.0
     }
+    val budgetExpense = when (val state = uiState) {
+        is HomeUiState.Success -> state.budgetExpense
+        is HomeUiState.Empty -> state.budgetExpense
+        else -> 0.0
+    }
+
+    val activeBudgetMonth = when (val state = uiState) {
+        is HomeUiState.Success -> state.activeBudgetMonth
+        is HomeUiState.Empty -> state.activeBudgetMonth
+        else -> ""
+    }
 
     val availableMonths = when (val state = uiState) {
         is HomeUiState.Success -> state.availableMonths
@@ -186,6 +197,8 @@ fun HomeScreen(
                 filteredTransactions = currentFilteredTransactions,
                 absoluteBalance = absoluteBalance,
                 budgetLimit = budgetLimit,
+                budgetExpense = budgetExpense,
+                activeBudgetMonth = activeBudgetMonth,
                 onEditBudgetClick = { showBudgetDialog = true } // 🛠️ PERBAIKAN: Typo onBudgetClick diperbaiki
             )
 
@@ -512,6 +525,8 @@ private fun SummarySection(
     filteredTransactions: List<Transaction>,
     absoluteBalance: Double,
     budgetLimit: Double,
+    budgetExpense: Double,
+    activeBudgetMonth: String,
     onEditBudgetClick: () -> Unit
 ) {
     val monthlyIncome = filteredTransactions.filter { it.type == TransactionType.INCOME }.sumOf { it.amount }
@@ -621,9 +636,11 @@ private fun SummarySection(
 
         // 🛠️ PERBAIKAN: BudgetProgressBar sekarang berada di luar Row, langsung di dalam Column
         BudgetProgressBar(
-            totalExpense = monthlyExpense,
+            totalExpense = budgetExpense,
             budgetLimit = budgetLimit,
-            onEditClick = onEditBudgetClick
+            monthLabel = activeBudgetMonth,
+            onEditClick = onEditBudgetClick,
+
         )
     }
 }
