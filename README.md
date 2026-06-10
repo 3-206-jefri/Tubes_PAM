@@ -3,8 +3,10 @@
 # PocketGuard
 
 PocketGuard adalah aplikasi mobile cerdas berbasis Android yang dirancang khusus untuk membantu pengguna mengelola keuangan personal mereka secara bijak. Aplikasi ini dibangun menggunakan teknologi mutakhir dengan pendekatan *offline-first*, dilengkapi dengan pelacakan anggaran bulanan yang fleksibel, serta asisten keuangan berbasis Kecerdasan Buatan (AI).
-
+<p align = "center">
 <img src="composeApp/src/commonMain/composeResources/drawable/Logo_PocketGuard.png" width="300">
+</p>
+
 
 ---
 
