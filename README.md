@@ -2,6 +2,7 @@
 ![CI](https://github.com/3-206-jefri/Tubes_PAM/actions/workflows/ci.yml/badge.svg)
 
 PocketGuard adalah aplikasi mobile Android yang dirancang untuk membantu pengguna mengelola keuangan personal mereka dengan cerdas. Aplikasi ini mengimplementasikan pencatatan pemasukan dan pengeluaran secara offline-first, pelacakan kategori, serta dilengkapi dengan fitur analisis finansial berbasis kecerdasan buatan (AI).
+![Logo_PocketGuard.png](composeApp/src/commonMain/composeResources/drawable/Logo_PocketGuard.png)
 
 ---
 
