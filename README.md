@@ -1,5 +1,5 @@
 <p align="left">
-  <img src="composeApp/src/commonMain/composeResources/drawable/Logo_PocketGuard.png" alt="PocketGuard Logo" width="140" height="140">
+  <img src="composeApp/src/commonMain/composeResources/drawable/Logo_PocketGuard.png" alt="PocketGuard Logo" width="500" height="500">
 </p>
 
 <h1 align="left">PocketGuard</h1>
