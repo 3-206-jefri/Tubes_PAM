@@ -1,10 +1,10 @@
-<p align="center">
+<p align="left">
   <img src="composeApp/src/commonMain/composeResources/drawable/Logo_PocketGuard.png" alt="PocketGuard Logo" width="140" height="140">
 </p>
 
-<h1 align="center">PocketGuard</h1>
+<h1 align="left">PocketGuard</h1>
 
-<p align="center">
+<p align="left">
   <a href="https://github.com/3-206-jefri/Tubes_PAM/actions/workflows/ci.yml">
     <img src="https://github.com/3-206-jefri/Tubes_PAM/actions/workflows/ci.yml/badge.svg" alt="CI Status">
   </a>
