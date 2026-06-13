@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://via.placeholder.com/120/2E7D32/FFFFFF?text=PG" alt="PocketGuard Logo" width="100">
+  <img src="Logo_PocketGuard.png" alt="PocketGuard Logo" width="100">
 
   <h1>🛡️ PocketGuard</h1>
   <p><b>Personal Finance Tracker & Smart Budgeting</b></p>
