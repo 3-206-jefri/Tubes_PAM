@@ -17,17 +17,16 @@
 
 
 ### 🎬 Demo & Showcase
-[cite_start]Lihat bagaimana PocketGuard bekerja secara langsung[cite: 205]:
-* **Final Demo Release:** [Tonton di YouTube](#) *(Masukkan link)*
-* **UI & Unit Test Coverage:** [Tonton di YouTube](#) *(Masukkan link)*
+Lihat bagaimana PocketGuard bekerja secara langsung:
+* **Final Demo Release:** [Tonton di YouTube](https://youtu.be/-NlWT6xaqNw)
+
 
 ---
 
 ## ✨ Fitur Utama & Pratinjau Layar
-
 | Dashboard & Riwayat | Smart Budgeting | Pencatatan Cepat |
 | :---: | :---: | :---: |
-| <img src="https://via.placeholder.com/200x400?text=Dashboard" width="200"/> | <img src="https://via.placeholder.com/200x400?text=Budget+Limit" width="200"/> | <img src="https://via.placeholder.com/200x400?text=Add+Transaction" width="200"/> |
+| <img src="composeApp/Dashboard.png" alt="Dashboard" width="200"/> | <img src="composeApp/SmartBudgeting.png" alt="Smart Budgeting" width="200"/> | <img src="composeApp/PencatatanCepat.png" alt="Pencatatan Cepat" width="200"/> |
 
 * 💸 **Dynamic Transaction:** Pisahkan pemasukan dan pengeluaran dengan kategori visual yang intuitif (Makanan, Transport, Tagihan, Gaji).
 * 🎯 **Visual Budget Tracker:** Tetapkan batas pengeluaran bulanan. *Progress bar* akan beradaptasi secara visual untuk mencegah *over-budget*.
@@ -38,13 +37,13 @@
 
 ## 🛠️ Arsitektur & Teknologi
 
-[cite_start]PocketGuard mengimplementasikan **Clean Architecture** (Domain, Data, Presentation) yang digabungkan dengan pola **MVVM** untuk memastikan skalabilitas kode[cite: 225].
+PocketGuard mengimplementasikan **Clean Architecture** (Domain, Data, Presentation) yang digabungkan dengan pola **MVVM** untuk memastikan skalabilitas kode[cite: 225].
 
 **Core Stack:**
 * **UI Toolkit:** Jetpack Compose Multiplatform
-* [cite_start]**Database Layer:** SQLDelight (Native C-Interop) [cite: 223]
-* [cite_start]**Dependency Injection:** Koin [cite: 223]
-* [cite_start]**Networking API:** Ktor HTTP Client [cite: 223]
+* **Database Layer:** SQLDelight (Native C-Interop) [cite: 223]
+* **Dependency Injection:** Koin [cite: 223]
+* ![img.png](PencatatanCepat.png)**Networking API:** Ktor HTTP Client [cite: 223]
 * **Local Preferences:** Jetpack DataStore
 * **Asynchronous:** Kotlin Coroutines & StateFlow
 
