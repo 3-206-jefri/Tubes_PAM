@@ -14,7 +14,7 @@
 ## 📖 Tentang Proyek
 **PocketGuard** adalah aplikasi manajemen keuangan pribadi berbasis **Kotlin Multiplatform (KMP)**. Dibangun dengan fokus pada kecepatan dan privasi (*offline-first*), aplikasi ini membantu pengguna melacak arus kas harian dan mengelola target pengeluaran bulanan melalui antarmuka yang bersih dan responsif.
 
-[cite_start]Proyek ini dikembangkan sebagai pemenuhan Tugas Besar mata kuliah Pengembangan Aplikasi Mobile (PAM) di Institut Teknologi Sumatera[cite: 6, 7, 23].
+
 
 ### 🎬 Demo & Showcase
 [cite_start]Lihat bagaimana PocketGuard bekerja secara langsung[cite: 205]:
@@ -48,7 +48,7 @@
 * **Local Preferences:** Jetpack DataStore
 * **Asynchronous:** Kotlin Coroutines & StateFlow
 
-> [cite_start]**Catatan Penilai:** *[Tambahkan gambar diagram arsitektur Anda di sini untuk memenuhi rubrik]* [cite: 226]
+
 
 ---
 
@@ -66,3 +66,17 @@ Stabilitas aplikasi divalidasi melalui pengujian di berbagai lapisan:
 2. **Kloning Repositori:**
    ```bash
    git clone [https://github.com/3-206-jefri/Tubes_PAM.git](https://github.com/3-206-jefri/Tubes_PAM.git)
+3. **Konfigurasi Kredensial (Wajib)**: Buat file local.properties di folder root dan masukkan API Key Anda untuk menghindari terekspos di Git:
+   ````bash
+   GEMINI_API_KEY=YOUR_API_KEY_HERE
+4. **Jalankan Aplikasi**: Lakukan Sync Gradle, pilih modul `composeApp` untuk target Android, lalu tekan **Run**.
+
+## 📥 Unduh Rilis (Production)
+Aplikasi PocketGuard telah dikompilasi ke dalam versi Signed Release yang stabil.
+
+- 📦 **Versi Saat Ini:** `v1.0.0`
+- 🔗 **[Unduh PocketGuard APK di sini](https://drive.google.com/drive/folders/1QyVhWHPzpXO3Ay0HXg8HkZOknjJg3UbC?usp=drive_link)**
+## 👨‍💻 Kreator
+Jefri Wahyu Fernando Sembiring (@3-206-jefri)
+
+Program Studi Teknik Informatika - Angkatan 2023 Peran: Fullstack Mobile Developer (UI/UX, Logic, & Testing)
