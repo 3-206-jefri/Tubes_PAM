@@ -7,6 +7,7 @@
 [![Kotlin](https://img.shields.io/badge/Kotlin-Multiplatform-7F52FF?logo=kotlin&logoColor=white)](#)
 [![Compose](https://img.shields.io/badge/Compose-Multiplatform-4285F4?logo=android&logoColor=white)](#)
 [![Status](https://img.shields.io/badge/Status-Release_Ready-success)](#)
+[![CI/CD Pipeline](https://github.com/3-206-jefri/Tubes_PAM/actions/workflows/ci.yml/badge.svg)](https://github.com/3-206-jefri/Tubes_PAM/actions)
 </div>
 
 ---

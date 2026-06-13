@@ -172,6 +172,12 @@ android {
         }
     }
 
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+        }
+    }
+
     buildFeatures {
         buildConfig = true
     }
@@ -188,4 +194,8 @@ sqldelight {
             packageName.set("com.example.pocketguard.data.local")
         }
     }
+}
+
+dependencies {
+    debugImplementation("androidx.compose.ui:ui-test-manifest:1.7.0")
 }
