@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="composeApp/src/commonMain/composeResources/drawable/Logo_PocketGuard.png" alt="PocketGuard Logo" width="100">
+  <img src="composeApp/src/commonMain/composeResources/drawable/Logo_PocketGuard.png" alt="PocketGuard Logo" width="300">
 
   <h1>🛡️ PocketGuard</h1>
   <p><b>Personal Finance Tracker & Smart Budgeting</b></p>
