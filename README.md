@@ -43,7 +43,7 @@ PocketGuard mengimplementasikan **Clean Architecture** (Domain, Data, Presentati
 * **UI Toolkit:** Jetpack Compose Multiplatform
 * **Database Layer:** SQLDelight (Native C-Interop) 
 * **Dependency Injection:** Koin 
-* ![img.png](composeApp/PencatatanCepat.png)**Networking API:** Ktor HTTP Client 
+* **Networking API:** Ktor HTTP Client 
 * **Local Preferences:** Jetpack DataStore
 * **Asynchronous:** Kotlin Coroutines & StateFlow
 
