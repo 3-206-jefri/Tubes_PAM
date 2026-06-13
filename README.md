@@ -37,13 +37,13 @@ Lihat bagaimana PocketGuard bekerja secara langsung:
 
 ## 🛠️ Arsitektur & Teknologi
 
-PocketGuard mengimplementasikan **Clean Architecture** (Domain, Data, Presentation) yang digabungkan dengan pola **MVVM** untuk memastikan skalabilitas kode[cite: 225].
+PocketGuard mengimplementasikan **Clean Architecture** (Domain, Data, Presentation) yang digabungkan dengan pola **MVVM** untuk memastikan skalabilitas kode.
 
 **Core Stack:**
 * **UI Toolkit:** Jetpack Compose Multiplatform
-* **Database Layer:** SQLDelight (Native C-Interop) [cite: 223]
-* **Dependency Injection:** Koin [cite: 223]
-* ![img.png](PencatatanCepat.png)**Networking API:** Ktor HTTP Client [cite: 223]
+* **Database Layer:** SQLDelight (Native C-Interop) 
+* **Dependency Injection:** Koin 
+* ![img.png](composeApp/PencatatanCepat.png)**Networking API:** Ktor HTTP Client 
 * **Local Preferences:** Jetpack DataStore
 * **Asynchronous:** Kotlin Coroutines & StateFlow
 
