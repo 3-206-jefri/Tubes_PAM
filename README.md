@@ -62,7 +62,7 @@ Stabilitas aplikasi divalidasi melalui pengujian di berbagai lapisan:
 
 ## 🚀 Panduan Instalasi (Getting Started)
 
-1. [cite_start]**Persiapan Sistem:** Pastikan Android Studio terbaru (Jellyfish/Koala) dan JDK 17 telah terinstal[cite: 230].
+1. **Persiapan Sistem:** Pastikan Android Studio terbaru (Jellyfish/Koala) dan JDK 17 telah terinstal[cite: 230].
 2. **Kloning Repositori:**
    ```bash
    git clone [https://github.com/3-206-jefri/Tubes_PAM.git](https://github.com/3-206-jefri/Tubes_PAM.git)
