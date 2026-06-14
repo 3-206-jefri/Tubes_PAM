@@ -76,6 +76,7 @@ Fokus pengujian (*test suite*) pada rilis ini diprioritaskan secara khusus pada 
 <div align="center">
   <img src="composeApp/KoverReport.png" alt="PocketGuard Kover Report Screenshot" width="750">
 </div>
+
 ---
 
 ## 🚀 Panduan Instalasi (Getting Started)
